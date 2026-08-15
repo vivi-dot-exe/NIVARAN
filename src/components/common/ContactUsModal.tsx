@@ -16,17 +16,17 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
   if (!isOpen) return null;
 
   const teamMembers = [
-    { name: 'Vaibhavi', role: 'Project Lead & Full-Stack Architect', phone: 'Lead Contact', isLead: true },
-    { name: 'Kishan Jha', role: 'Group Admin & System Coordinator', phone: '+91 820 849 5823', isAdmin: true },
-    { name: 'Nitin Jha', role: 'Backend & Data Infrastructure', phone: '+91 84212 35166' },
-    { name: 'Rishi Jhunjhunwala', role: 'NLP & AI Triage Specialist', phone: '+91 98679 14518' },
-    { name: 'Prachi', role: 'UI/UX & Accessibility Designer', phone: 'Design Core' },
-    { name: 'Vedant', role: 'BERTopic ML & Clustering Specialist', phone: 'ML Core' }
+    { name: 'Vaibhavi Tiwari', phone: '+91 98765 12345' },
+    { name: 'Kishan Jha', phone: '+91 98765 12346' },
+    { name: 'Nitin Jha', phone: '+91 98765 12347' },
+    { name: 'Rishi Jhunjhunwala', phone: '+91 98765 12348' },
+    { name: 'Prachi', phone: '+91 98765 12349' },
+    { name: 'Vedant', phone: '+91 98765 12350' }
   ];
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-955/80 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -72,7 +72,7 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
                 <div>
                   <span className="text-xs text-slate-500 font-bold block uppercase">Development Team</span>
                   <h4 className="text-lg font-black text-[#7A0C38]">Team: AlphaClan</h4>
-                  <p className="text-xs text-slate-600 font-medium">DARPG Mandate Smart India Hackathon Team</p>
+                  <p className="text-xs text-slate-600 font-medium">Smart India Hackathon Team</p>
                 </div>
               </div>
 
@@ -99,28 +99,13 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
                   <div
                     key={idx}
                     className={`p-3.5 rounded-xl border transition flex items-center justify-between ${
-                      m.isLead
-                        ? 'bg-amber-500/10 border-amber-500/30'
-                        : isDarkMode ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50 border-slate-200'
+                      isDarkMode ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50 border-slate-200'
                     }`}
                   >
                     <div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`font-extrabold text-sm ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                          {m.name}
-                        </span>
-                        {m.isLead && (
-                          <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-amber-400 text-slate-950 font-mono">
-                            LEAD
-                          </span>
-                        )}
-                        {m.isAdmin && (
-                          <span className="px-2 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono">
-                            ADMIN
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-slate-500 font-medium block mt-0.5">{m.role}</span>
+                      <span className={`font-extrabold text-sm ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                        {m.name}
+                      </span>
                     </div>
 
                     <div className="text-right shrink-0">
@@ -149,7 +134,7 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
 
           {/* Footer Close Button */}
           <div className={`p-4 border-t flex justify-end ${
-            isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-50'
+            isDarkMode ? 'border-slate-800 bg-slate-955' : 'border-slate-200 bg-slate-50'
           }`}>
             <button
               onClick={onClose}
