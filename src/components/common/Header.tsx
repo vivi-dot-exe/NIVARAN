@@ -1,4 +1,6 @@
 import React from 'react';
+import type { Language } from '../../utils/translations';
+import { TRANSLATIONS } from '../../utils/translations';
 import {
   ShieldCheck,
   UserCheck,
@@ -23,6 +25,8 @@ interface HeaderProps {
   setIsDarkMode: (val: boolean) => void;
   breachedCount: number;
   isBackendConnected?: boolean;
+  currentLanguage: Language;
+  onLanguageChange: (lang: Language) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,8 +35,12 @@ export const Header: React.FC<HeaderProps> = ({
   isDarkMode,
   setIsDarkMode,
   breachedCount,
-  isBackendConnected = false
+  isBackendConnected = false,
+  currentLanguage,
+  onLanguageChange
 }) => {
+  const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
+
   return (
     <header className="w-full shadow-md transition-colors duration-200">
       
@@ -57,22 +65,22 @@ export const Header: React.FC<HeaderProps> = ({
 
           <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
             <Home className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
-            <span>Home</span>
+            <span>{t.home}</span>
           </span>
           <span>|</span>
           <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
             <PhoneCall className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
-            <span>Contact Us</span>
+            <span>{t.contactUs}</span>
           </span>
           <span>|</span>
           <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
             <HelpCircle className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
-            <span>FAQs / Help</span>
+            <span>{t.faqs}</span>
           </span>
           <span>|</span>
           <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
             <FileText className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
-            <span>Site Map</span>
+            <span>{t.siteMap}</span>
           </span>
         </div>
       </div>
@@ -86,7 +94,6 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Ashoka Lion Capital Emblem & Department Title */}
           <div className="flex items-center space-x-4">
             <div className="w-14 h-16 shrink-0 flex flex-col items-center justify-center p-1 bg-amber-50/50 rounded-xl border border-amber-200/40" style={{ width: '56px', height: '64px', minWidth: '56px' }}>
-              {/* Ashoka Emblem Vector Graphic with Explicit Fallback Sizing */}
               <svg 
                 viewBox="0 0 100 120" 
                 className="w-10 h-12 text-amber-800 fill-current" 
@@ -107,10 +114,10 @@ export const Header: React.FC<HeaderProps> = ({
               <h1 className={`text-base sm:text-lg font-extrabold uppercase tracking-tight font-heading ${
                 isDarkMode ? 'text-white' : 'text-slate-900'
               }`}>
-                DEPARTMENT OF ADMINISTRATIVE REFORMS & PUBLIC GRIEVANCES
+                {t.govTitle}
               </h1>
               <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                Government of India • Public Grievances Auto-Clustering Platform
+                {t.govSub}
               </p>
             </div>
           </div>
@@ -125,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </div>
               <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wider mt-0.5">
-                Centralized Public Grievance Redress System
+                {t.centralizedSystem}
               </p>
             </div>
           </div>
@@ -148,7 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <UserCheck className="w-4 h-4" style={{ width: '16px', height: '16px' }} />
-              <span>Citizen Portal</span>
+              <span>{t.citizenPortal}</span>
             </button>
 
             <button
@@ -160,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <LayoutDashboard className="w-4 h-4" style={{ width: '16px', height: '16px' }} />
-              <span>Nodal Officer Dashboard</span>
+              <span>{t.nodalDashboard}</span>
               {breachedCount > 0 && (
                 <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping absolute top-1 right-1" />
               )}
@@ -175,11 +182,11 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Layers className="w-4 h-4 text-amber-300" style={{ width: '16px', height: '16px' }} />
-              <span>Batch Ingestion Demo</span>
+              <span>{t.batchDemo}</span>
             </button>
           </nav>
 
-          {/* Right Action Menu (Theme Toggle Button, Language selector, Sign in) */}
+          {/* Right Action Menu (Language selector, Theme Toggle Button, Sign in) */}
           <div className="flex items-center space-x-3 text-xs">
             {/* Live Monitoring Badge */}
             <div className={`hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
@@ -198,13 +205,17 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Language Selector Dropdown */}
+            {/* Real-time Language Selector Dropdown */}
             <div className="flex items-center space-x-1 bg-[#5C082A] px-2.5 py-1 rounded border border-[#961247]">
               <Globe className="w-3.5 h-3.5 text-amber-300" style={{ width: '14px', height: '14px' }} />
-              <select className="bg-transparent text-white font-medium text-xs focus:outline-none cursor-pointer">
+              <select
+                value={currentLanguage}
+                onChange={(e) => onLanguageChange(e.target.value as Language)}
+                className="bg-transparent text-white font-medium text-xs focus:outline-none cursor-pointer"
+              >
                 <option value="en" className="bg-slate-900 text-white">Language: English</option>
                 <option value="hi" className="bg-slate-900 text-white">भाषा: हिंदी</option>
-                <option value="hinglish" className="bg-slate-900 text-white">Hinglish</option>
+                <option value="hinglish" className="bg-slate-900 text-white">Language: Hinglish</option>
               </select>
             </div>
 
@@ -229,7 +240,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Official Sign In Button (Amber Yellow) */}
             <button className="px-4 py-1.5 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow-sm flex items-center space-x-1">
-              <span>Sign In</span>
+              <span>{t.signIn}</span>
               <span>&rarr;</span>
             </button>
           </div>
@@ -239,7 +250,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* 4. ANNOUNCEMENT TICKER BAR (Bottom Maroon Alert Bar) */}
       <div className="bg-[#5C082A] text-amber-300 text-[11px] font-semibold py-1.5 px-4 text-center border-t border-b border-[#961247]">
-        📢 IMPORTANT NOTICE: Any Grievance sent by email will not be attended to / entertained. Please lodge your civic grievance on this official NIVARAN DARPG portal for mandatory SLA tracking & AI auto-clustering.
+        {t.importantNotice}
       </div>
 
     </header>

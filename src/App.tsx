@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Grievance } from './types/grievance';
+import type { Language } from './utils/translations';
 import { INITIAL_GRIEVANCES } from './mockData/grievances';
 import { Header } from './components/common/Header';
 import { GrievanceForm } from './components/citizen/GrievanceForm';
@@ -24,7 +25,10 @@ export function App() {
   const [citizenSubTab, setCitizenSubTab] = useState<'form' | 'tracker'>('form');
   const [trackingTicketId, setTrackingTicketId] = useState<string>('G-1001');
   
-  // DEFAULT TO DARK GOVTECH SLATE MODE (User Preferred Theme)
+  // REAL-TIME MULTILINGUAL LANGUAGE STATE ('en' | 'hi' | 'hinglish')
+  const [currentLanguage, setCurrentLanguage] = useState<Language>('hi');
+
+  // DEFAULT TO DARK GOVTECH SLATE MODE
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
 
@@ -116,10 +120,10 @@ export function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
-      isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#F4F6F9] text-slate-900'
+      isDarkMode ? 'bg-slate-955 text-slate-100' : 'bg-[#F4F6F9] text-slate-900'
     }`}>
       
-      {/* Header Navigation */}
+      {/* Header Navigation with Real-time Multilingual State */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -127,6 +131,8 @@ export function App() {
         setIsDarkMode={setIsDarkMode}
         breachedCount={breachedCount}
         isBackendConnected={isBackendConnected}
+        currentLanguage={currentLanguage}
+        onLanguageChange={setCurrentLanguage}
       />
 
       {/* Main Page Container */}
@@ -149,7 +155,13 @@ export function App() {
                 }`}
               >
                 <FileText className="w-4 h-4" />
-                <span>1. Lodge Grievance (NIVARAN AI Triage)</span>
+                <span>
+                  {currentLanguage === 'hi' 
+                    ? '1. शिकायत दर्ज करें (निवारण AI विश्लेषण)' 
+                    : currentLanguage === 'hinglish' 
+                    ? '1. Complaint Lodge Karein (NIVARAN AI)' 
+                    : '1. Lodge Grievance (NIVARAN AI Triage)'}
+                </span>
               </button>
 
               <button
@@ -161,7 +173,13 @@ export function App() {
                 }`}
               >
                 <Search className="w-4 h-4" />
-                <span>2. Track Status & SLA Timer</span>
+                <span>
+                  {currentLanguage === 'hi' 
+                    ? '2. स्थिति एवं SLA टाइमर ट्रैक करें' 
+                    : currentLanguage === 'hinglish' 
+                    ? '2. Status & SLA Timer Track Karein' 
+                    : '2. Track Status & SLA Timer'}
+                </span>
               </button>
             </div>
 
@@ -172,6 +190,7 @@ export function App() {
                 onUpvoteGrievance={handleUpvoteGrievance}
                 isDarkMode={isDarkMode}
                 onTrackTicket={handleNavigateToTracker}
+                currentLanguage={currentLanguage}
               />
             ) : (
               <CitizenTracker
