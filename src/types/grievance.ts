@@ -5,7 +5,8 @@ export type DepartmentType =
   | 'Roads & Infra'
   | 'Sanitation & Waste'
   | 'Electricity'
-  | 'Public Distribution';
+  | 'Public Distribution'
+  | 'Public Health & Healthcare';
 
 export type PriorityLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 

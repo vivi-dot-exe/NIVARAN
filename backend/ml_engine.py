@@ -9,11 +9,11 @@ embedder = SentenceTransformer(EMBED_MODEL_NAME)
 
 # 2. Canonical department anchors
 DEPARTMENT_ANCHORS = {
+    "Public Health & Healthcare": "no working hospitals hospital clinic doctor medical beds dengue malaria ambulance emergency healthcare non-functional doctor missing",
     "Water Supply": "broken water pipe pipeline leakage contaminated tap water sewage low pressure",
     "Roads & Infrastructure": "huge pothole road broken open manhole collapsed footpath damaged divider asphalt",
     "Sanitation & Garbage": "garbage dumping waste overflow trash bin cleaning dead animal smell stench",
-    "Electricity & Power": "sparking wire hanging electrical cable power outage transformer blast street light off",
-    "Public Health & Safety": "dengue mosquito breeding open drain hazardous chemical medical waste emergency hazard"
+    "Electricity & Power": "sparking wire hanging electrical cable power outage transformer blast street light off"
 }
 
 # Pre-compute category embeddings
@@ -22,8 +22,8 @@ DEPT_EMBEDDINGS = embedder.encode(list(DEPARTMENT_ANCHORS.values()), convert_to_
 
 # Urgency anchor embeddings (for dynamic severity score 0-100)
 URGENCY_ANCHORS = [
-    "major accident imminent life threatening critical risk massive fire hazard explosion electrocution risk",
-    "severe blockage daily life disrupted road impassable dirty contaminated drinking water spreading illness",
+    "major accident imminent life threatening critical risk massive fire hazard explosion electrocution risk no working hospitals emergency",
+    "severe blockage daily life disrupted road impassable dirty contaminated drinking water spreading illness non-functional medical clinic",
     "minor inconvenience cosmetic issue non urgent routine maintenance follow up"
 ]
 URGENCY_WEIGHTS = [100, 65, 20]

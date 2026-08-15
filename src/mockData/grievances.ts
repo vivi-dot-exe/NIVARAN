@@ -531,5 +531,6 @@ export const DEPARTMENTS_LIST: Array<Grievance['Department']> = [
   'Roads & Infra',
   'Sanitation & Waste',
   'Electricity',
-  'Public Distribution'
+  'Public Distribution',
+  'Public Health & Healthcare'
 ];

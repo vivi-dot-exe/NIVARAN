@@ -20,7 +20,7 @@ export function detectLanguage(text: string): LanguageType {
     'paani', 'pani', 'kachra', 'gadda', 'sadak', 'bijli', 'batti', 'naala',
     'phat', 'phata', 'hai', 'hain', 'ho', 'me', 'mein', 'par', 'pe', 'nahi',
     'nahin', 'aaj', 'kal', 'bohot', 'bahut', 'bada', 'chhota', 'bhai', 'wala',
-    'wali', 'daba', 'aag', 'kharaab', 'kharab'
+    'wali', 'daba', 'aag', 'kharaab', 'kharab', 'aspatal', 'aspataal', 'dawa'
   ];
 
   const lower = text.toLowerCase();
@@ -78,7 +78,15 @@ export function classifyDepartment(text: string): {
     'widow', 'senior citizen', 'grain', 'shop'
   ]);
 
+  // Public Health & Healthcare keywords
+  const healthScore = countMatches(lower, [
+    'hospital', 'hospitals', 'doctor', 'doctors', 'clinic', 'medical', 'medicine',
+    'bed', 'beds', 'ambulance', 'dengue', 'malaria', 'icu', 'oxygen', 'patient',
+    'patients', 'health', 'healthcare', 'phc', 'aspatal', 'aspataal', 'dawa', 'swasthya'
+  ]);
+
   const scores = [
+    { dept: 'Public Health & Healthcare' as DepartmentType, topic: 'Hospital Infrastructure & Emergency Services', score: healthScore * 1.8 },
     { dept: 'Water Supply' as DepartmentType, topic: 'Water Pipeline Leakage & Disruption', score: waterScore * 1.5 },
     { dept: 'Roads & Infra' as DepartmentType, topic: 'Pothole & Road Surface Hazard', score: infraScore * 1.4 },
     { dept: 'Sanitation & Waste' as DepartmentType, topic: 'Garbage Dump Overflow & Waste Discard', score: sanitationScore * 1.4 },
@@ -90,7 +98,7 @@ export function classifyDepartment(text: string): {
 
   if (scores[0].score > 0) {
     const totalScore = scores.reduce((sum, item) => sum + item.score, 0);
-    const confidence = Math.min(0.98, Math.max(0.65, scores[0].score / (totalScore || 1)));
+    const confidence = Math.min(0.98, Math.max(0.72, scores[0].score / (totalScore || 1)));
     return {
       department: scores[0].dept,
       topic: scores[0].topic,
@@ -98,11 +106,11 @@ export function classifyDepartment(text: string): {
     };
   }
 
-  // Fallback default
+  // General Fallback
   return {
-    department: 'Sanitation & Waste',
+    department: 'Public Health & Healthcare',
     topic: 'General Civic Administration',
-    confidence: 0.60
+    confidence: 0.65
   };
 }
 
@@ -128,9 +136,9 @@ export function performAiTriage(
 
   // Calculate Severity (1-5)
   let severity = 2;
-  if (countMatches(lower, ['blast', 'explosion', 'gushing', 'phat', 'flooding', 'blackout', 'aag', 'sparks', 'cave-in', 'emergency']) > 0) {
+  if (countMatches(lower, ['hospital', 'hospitals', 'blast', 'explosion', 'gushing', 'phat', 'flooding', 'blackout', 'aag', 'sparks', 'cave-in', 'emergency', 'no working', 'icu', 'oxygen', 'ambulance', 'life']) > 0) {
     severity = 5;
-  } else if (countMatches(lower, ['pothole', 'accident', 'dirty', 'leak', 'overflow', 'blockage', 'dangerous', 'dark spot', 'hazard']) > 0) {
+  } else if (countMatches(lower, ['doctor', 'clinic', 'pothole', 'accident', 'dirty', 'leak', 'overflow', 'blockage', 'dangerous', 'dark spot', 'hazard']) > 0) {
     severity = 4;
   } else if (countMatches(lower, ['delay', 'uncollected', 'smell', 'broken', 'issue', 'problem']) > 0) {
     severity = 3;
@@ -138,7 +146,7 @@ export function performAiTriage(
 
   // Calculate Urgency (1-5)
   let urgency = 2;
-  if (countMatches(lower, ['emergency', 'urgent', 'immediately', 'now', 'today', 'hours', 'risk', 'danger']) > 0) {
+  if (countMatches(lower, ['hospital', 'hospitals', 'no working', 'emergency', 'urgent', 'immediately', 'now', 'today', 'hours', 'risk', 'danger', 'icu', 'ambulance']) > 0) {
     urgency = 5;
   } else if (countMatches(lower, ['rain', 'traffic', 'slipping', 'sparks', 'foul', 'night']) > 0) {
     urgency = 4;
@@ -148,7 +156,7 @@ export function performAiTriage(
 
   // Calculate Affected Scope (1-5)
   let affectedScope = 2;
-  if (countMatches(lower, ['entire', 'whole', 'block', 'ward', 'colony', 'area', 'society', '1 km', 'all', 'station', 'subway']) > 0) {
+  if (countMatches(lower, ['kandivali', 'entire', 'whole', 'block', 'ward', 'colony', 'area', 'society', '1 km', 'all', 'station', 'subway', 'city']) > 0) {
     affectedScope = 5;
   } else if (countMatches(lower, ['junction', 'road', 'multiple', 'homes', 'people', 'queue']) > 0) {
     affectedScope = 4;
@@ -171,7 +179,6 @@ export function performAiTriage(
     const wardGrievances = existingGrievances.filter((g) => g.Ward === ward);
     for (const g of wardGrievances) {
       if (g.Department === department) {
-        // Match keywords or duplicate group
         const wordMatch = countCommonWords(text, g.Complaint);
         if (wordMatch >= 3 || (g.Duplicate_Group && g.Department === department)) {
           duplicateMatch = g;
