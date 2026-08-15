@@ -20,7 +20,7 @@ interface BerTopicScatterProps {
   isDarkMode: boolean;
 }
 
-// Deterministic stable coordinate generator to prevent dot jittering on hover
+// Deterministic stable coordinate generator to prevent dot jittering
 function getStableCoord(id: string, salt: number): number {
   let hash = salt;
   for (let i = 0; i < id.length; i++) {
@@ -44,7 +44,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
       return {
         x,
         y,
-        z: g.Priority_Score * 4,
+        z: (g.Priority_Score || 50) * 4,
         grievance: g
       };
     });
@@ -192,7 +192,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
               onClick={(data) => {
                 const g = (data as unknown as { grievance: Grievance }).grievance;
                 if (g && g.Duplicate_Group) {
-                  onSelectCluster(g.Duplicate_Group);
+                  onSelectCluster(selectedClusterId === g.Duplicate_Group ? null : g.Duplicate_Group);
                 }
               }}
             >
@@ -205,10 +205,10 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
                   <Cell
                     key={`cell-${entry.grievance.Complaint_ID}-${index}`}
                     fill={getClusterColor(entry.grievance.Department)}
-                    opacity={isMatchCluster ? 0.95 : 0.2}
-                    stroke={isMatchCluster ? '#000000' : 'none'}
-                    strokeWidth={isMatchCluster ? 1.5 : 0}
-                    className="cursor-pointer transition-all hover:scale-125"
+                    opacity={isMatchCluster ? 0.95 : 0.25}
+                    stroke={isMatchCluster ? (isDarkMode ? '#ffffff' : '#000000') : 'none'}
+                    strokeWidth={isMatchCluster ? 2 : 0}
+                    style={{ cursor: 'pointer', transition: 'fill-opacity 0.2s, stroke-width 0.2s' }}
                   />
                 );
               })}
