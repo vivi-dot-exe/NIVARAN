@@ -10,6 +10,7 @@ import { SignInModal } from './components/common/SignInModal';
 import { GrievanceForm } from './components/citizen/GrievanceForm';
 import { CitizenTracker } from './components/citizen/CitizenTracker';
 import { KpiCards } from './components/admin/KpiCards';
+import { AnalyticsCharts } from './components/admin/AnalyticsCharts';
 import { BerTopicScatter } from './components/admin/BerTopicScatter';
 import { GeographicHeatmap } from './components/admin/GeographicHeatmap';
 import { GrievanceTable } from './components/admin/GrievanceTable';
@@ -87,7 +88,6 @@ export function App() {
           const apiTickets = await fetchTicketsApi();
           if (apiTickets.length > 0 && isMounted) {
             setGrievances((prev) => {
-              // Merge API tickets with locally created tickets so no user data is lost
               const prevMap = new Map(prev.map((item) => [item.Complaint_ID, item]));
               apiTickets.forEach((t) => {
                 prevMap.set(t.Complaint_ID, t);
@@ -279,6 +279,13 @@ export function App() {
           <div className="space-y-8">
             {/* KPI Metric Summary Cards */}
             <KpiCards
+              grievances={grievances}
+              isDarkMode={isDarkMode}
+              currentLanguage={currentLanguage}
+            />
+
+            {/* Department Breakdown & Status Proportions + Priority SLA Breach Triage Tracker */}
+            <AnalyticsCharts
               grievances={grievances}
               isDarkMode={isDarkMode}
               currentLanguage={currentLanguage}
