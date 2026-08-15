@@ -245,6 +245,7 @@ export function App() {
             onInjectBatch={handleInjectBatch}
             grievancesCount={grievances.length}
             isDarkMode={isDarkMode}
+            currentLanguage={currentLanguage}
           />
         )}
 

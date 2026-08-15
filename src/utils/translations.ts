@@ -125,11 +125,18 @@ export const TRANSLATIONS = {
     takeAction: 'Take Action',
 
     // Demo Batch
+    pitchBadge: 'PITCH DEMO SIMULATOR & CSV INGESTION',
+    bertThroughput: 'High-Throughput BERTopic Clustering',
     demoTitle: 'Batch Ingestion & Live Auto-Clustering Engine',
     demoSub: 'Simulate an emergency surge (monsoon cloudburst). Click "Inject 200+ Realistic Civic Complaints" or upload a .CSV / .XLSX dataset file to trigger FastAPI BERTopic HDBSCAN clustering into 5 operational hotspot clouds.',
     injectBtn: 'Inject 200+ Civic Complaints',
     uploadBtn: 'Upload .CSV / .XLSX File',
-    totalSystemComplaints: 'Total System Complaints:'
+    totalSystemComplaints: 'Total System Complaints:',
+    injectedSuccessMsg: '200 Complaints Injected & Clustered',
+    computingCentroids: 'Computing BERTopic Centroids...',
+    clusterFormationTitle: 'BERTopic Dynamic Cluster Formation Map',
+    clusterSimulatePrompt: 'Click Inject button above to simulate 200 points',
+    injectedBadge: '200 Injected Points Clustered'
   },
 
   hi: {
@@ -253,7 +260,21 @@ export const TRANSLATIONS = {
     colSla: 'समाधान समय (SLA)',
     colStatus: 'वर्तमान स्थिति',
     colAction: 'कार्रवाई',
-    takeAction: 'कार्रवाई करें'
+    takeAction: 'कार्रवाई करें',
+
+    // Demo Batch
+    pitchBadge: 'पिच डेमो सिम्युलेटर एवं CSV डेटा अपलोड',
+    bertThroughput: 'उच्च क्षमता BERTopic क्लस्टरिंग',
+    demoTitle: 'बैच शिकायत इंजेक्शन एवं लाइव क्लस्टरिंग इंजन',
+    demoSub: 'आपातकालीन मानसूनी जलभराव सिमुलेशन शुरू करने के लिए "200+ शिकायतें जनरेट करें" पर क्लिक करें या .CSV / .XLSX फ़ाइल अपलोड करें।',
+    injectBtn: '200+ शिकायतें जनरेट करें',
+    uploadBtn: '.CSV / .XLSX फ़ाइल अपलोड करें',
+    totalSystemComplaints: 'सिस्टम में कुल दर्ज शिकायतें:',
+    injectedSuccessMsg: '200 शिकायतें सफलतापूर्वक जनरेट एवं क्लस्टर की गईं',
+    computingCentroids: 'BERTopic क्लस्टर गणना जारी...',
+    clusterFormationTitle: 'BERTopic गतिशील क्लस्टर निर्माण मानचित्र',
+    clusterSimulatePrompt: '200 बिंदु जनरेट करने के लिए ऊपर बटन पर क्लिक करें',
+    injectedBadge: '200 जनरेटेड बिंदु क्लस्टर किए गए'
   },
 
   hinglish: {
@@ -377,6 +398,20 @@ export const TRANSLATIONS = {
     colSla: 'SLA Timer',
     colStatus: 'Status',
     colAction: 'Action',
-    takeAction: 'Take Action'
+    takeAction: 'Take Action',
+
+    // Demo Batch
+    pitchBadge: 'PITCH DEMO SIMULATOR & CSV INGESTION',
+    bertThroughput: 'High-Throughput BERTopic Clustering',
+    demoTitle: 'Batch Ingestion & Live Auto-Clustering Engine',
+    demoSub: 'Emergency surge simulate karne ke liye "Inject 200+ Civic Complaints" par click karein ya .CSV / .XLSX file upload karein.',
+    injectBtn: 'Inject 200+ Civic Complaints',
+    uploadBtn: 'Upload .CSV / .XLSX File',
+    totalSystemComplaints: 'Total System Complaints:',
+    injectedSuccessMsg: '200 Complaints Injected & Clustered',
+    computingCentroids: 'Computing BERTopic Centroids...',
+    clusterFormationTitle: 'BERTopic Dynamic Cluster Formation Map',
+    clusterSimulatePrompt: '200 points simulate karne ke liye upar button click karein',
+    injectedBadge: '200 Injected Points Clustered'
   }
 };

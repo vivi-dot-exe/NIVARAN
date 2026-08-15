@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import type { Grievance } from '../../types/grievance';
+import type { Language } from '../../utils/translations';
+import { TRANSLATIONS } from '../../utils/translations';
 import { uploadFileApi } from '../../services/api';
 import {
   Layers,
@@ -29,13 +31,17 @@ interface BatchIngestionDemoProps {
   onInjectBatch: (newGrievances: Grievance[]) => void;
   grievancesCount: number;
   isDarkMode: boolean;
+  currentLanguage?: Language;
 }
 
 export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
   onInjectBatch,
   grievancesCount,
-  isDarkMode
+  isDarkMode,
+  currentLanguage = 'en'
 }) => {
+  const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
+
   const [isInjecting, setIsInjecting] = useState(false);
   const [isComputingClusters, setIsComputingClusters] = useState(false);
   const [hasInjected, setHasInjected] = useState(false);
@@ -116,7 +122,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
       const c = clusterTypes[clusterIdx];
       const textSample = c.textPrefixes[Math.floor(Math.random() * c.textPrefixes.length)];
 
-      const severity = Math.floor(Math.random() * 2) + 4; // 4 or 5
+      const severity = Math.floor(Math.random() * 2) + 4;
       const urgency = Math.floor(Math.random() * 2) + 4;
       const scope = Math.floor(Math.random() * 3) + 3;
       const priorityScore = Math.min(100, Math.max(65, Math.round((severity * 0.35 + urgency * 0.35 + scope * 0.30) * 20)));
@@ -210,17 +216,17 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
           <div>
             <div className="flex items-center space-x-2">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#7A0C38] text-white uppercase">
-                Pitch Demo Simulator & CSV Ingestion
+                {t.pitchBadge}
               </span>
-              <span className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>High-Throughput BERTopic Clustering</span>
+              <span className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{t.bertThroughput}</span>
             </div>
             <h2 className={`text-2xl font-extrabold mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              Batch Ingestion & Live Auto-Clustering Engine
+              {t.demoTitle}
             </h2>
             <p className={`text-xs max-w-3xl mt-1 leading-relaxed ${
               isDarkMode ? 'text-slate-400' : 'text-slate-600'
             }`}>
-              Simulate an emergency surge (monsoon cloudburst). Click <strong>"Inject 200+ Realistic Civic Complaints"</strong> or upload a <strong>.CSV / .XLSX</strong> dataset file to trigger FastAPI BERTopic HDBSCAN clustering into 5 operational hotspot clouds.
+              {t.demoSub}
             </p>
           </div>
 
@@ -228,7 +234,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
             {/* File Upload Button */}
             <label className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs cursor-pointer border border-slate-700 transition flex items-center space-x-2 shrink-0">
               <UploadCloud className="w-4 h-4 text-amber-400" />
-              <span>{isUploading ? 'Uploading File...' : 'Upload .CSV / .XLSX File'}</span>
+              <span>{isUploading ? 'Uploading...' : t.uploadBtn}</span>
               <input
                 type="file"
                 accept=".csv, .xlsx, .xls"
@@ -249,12 +255,12 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
               {isInjecting || isComputingClusters ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin text-amber-300" />
-                  <span>Computing BERTopic Centroids...</span>
+                  <span>{t.computingCentroids}</span>
                 </>
               ) : (
                 <>
                   <Zap className="w-5 h-5 text-amber-300 fill-amber-300" />
-                  <span>Inject 200+ Civic Complaints</span>
+                  <span>{t.injectBtn}</span>
                 </>
               )}
             </button>
@@ -274,11 +280,11 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
           isDarkMode ? 'border-slate-800' : 'border-slate-200'
         }`}>
           <div className="flex items-center space-x-4">
-            <span className="text-slate-600 font-medium">Total System Complaints: <strong className="text-slate-900 font-mono font-extrabold">{grievancesCount}</strong></span>
+            <span className="text-slate-600 font-medium">{t.totalSystemComplaints} <strong className="text-slate-900 font-mono font-extrabold">{grievancesCount}</strong></span>
             {hasInjected && (
               <span className="text-emerald-700 font-extrabold flex items-center space-x-1">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>200 Complaints Injected & Clustered</span>
+                <span>{t.injectedSuccessMsg}</span>
               </span>
             )}
           </div>
@@ -400,11 +406,11 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
             <h3 className={`font-extrabold text-base uppercase tracking-wide ${
               isDarkMode ? 'text-white' : 'text-slate-900'
             }`}>
-              BERTopic Dynamic Cluster Formation Map
+              {t.clusterFormationTitle}
             </h3>
           </div>
           <span className="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-[#7A0C38] text-white">
-            {hasInjected ? '200 Injected Points Clustered' : 'Click Inject button above to simulate 200 points'}
+            {hasInjected ? t.injectedBadge : t.clusterSimulatePrompt}
           </span>
         </div>
 
