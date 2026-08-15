@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { Grievance } from '../../types/grievance';
 import { INITIAL_CLUSTERS } from '../../mockData/grievances';
 import {
@@ -20,32 +20,48 @@ interface BerTopicScatterProps {
   isDarkMode: boolean;
 }
 
+// Deterministic stable coordinate generator to prevent dot jittering on hover
+function getStableCoord(id: string, salt: number): number {
+  let hash = salt;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash << 5) - hash + id.charCodeAt(i);
+    hash |= 0;
+  }
+  return (Math.abs(hash) % 140) - 70;
+}
+
 export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
   grievances,
   selectedClusterId,
   onSelectCluster,
   isDarkMode
 }) => {
-  // Map grievances into 2D embedding points
-  const scatterData = grievances.map((g) => ({
-    x: g.Cluster_X ?? (Math.random() * 160 - 80),
-    y: g.Cluster_Y ?? (Math.random() * 160 - 80),
-    z: g.Priority_Score * 4,
-    grievance: g
-  }));
+  // Stable memoized scatter coordinates derived from ticket metadata
+  const scatterData = useMemo(() => {
+    return grievances.map((g) => {
+      const x = g.Cluster_X ?? getStableCoord(g.Complaint_ID, 17);
+      const y = g.Cluster_Y ?? getStableCoord(g.Complaint_ID, 31);
+      return {
+        x,
+        y,
+        z: g.Priority_Score * 4,
+        grievance: g
+      };
+    });
+  }, [grievances]);
 
   const getClusterColor = (dept: string) => {
     switch (dept) {
       case 'Water Supply':
-        return '#0284c7'; // Sky
+        return '#0284c7';
       case 'Roads & Infra':
-        return '#d97706'; // Amber
+        return '#d97706';
       case 'Sanitation & Waste':
-        return '#16a34a'; // Green
+        return '#16a34a';
       case 'Electricity':
-        return '#dc2626'; // Red
+        return '#dc2626';
       case 'Public Distribution':
-        return '#9333ea'; // Purple
+        return '#9333ea';
       default:
         return '#64748b';
     }
@@ -147,6 +163,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
             />
             <ZAxis type="number" dataKey="z" range={[100, 400]} />
             <Tooltip
+              cursor={{ strokeDasharray: '3 3' }}
               content={({ payload }) => {
                 if (payload && payload.length) {
                   const data = (payload[0].payload as { grievance: Grievance }).grievance;
@@ -186,7 +203,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
 
                 return (
                   <Cell
-                    key={`cell-${index}`}
+                    key={`cell-${entry.grievance.Complaint_ID}-${index}`}
                     fill={getClusterColor(entry.grievance.Department)}
                     opacity={isMatchCluster ? 0.95 : 0.2}
                     stroke={isMatchCluster ? '#000000' : 'none'}

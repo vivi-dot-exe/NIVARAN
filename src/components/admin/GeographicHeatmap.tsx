@@ -1,12 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Grievance } from '../../types/grievance';
-import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
 import { MapPin } from 'lucide-react';
 import { DEPARTMENTS_LIST } from '../../mockData/grievances';
 
 interface GeographicHeatmapProps {
   grievances: Grievance[];
   isDarkMode: boolean;
+}
+
+// Leaflet resize listener component to fix tile rendering/cutoff glitch on mount
+function MapResizeListener() {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
 }
 
 export const GeographicHeatmap: React.FC<GeographicHeatmapProps> = ({
@@ -89,13 +101,16 @@ export const GeographicHeatmap: React.FC<GeographicHeatmapProps> = ({
       </div>
 
       {/* Leaflet Map Container */}
-      <div className="h-96 w-full rounded-xl overflow-hidden border border-slate-300 relative shadow-inner">
+      <div className="h-96 w-full rounded-xl overflow-hidden border border-slate-300 relative shadow-inner" style={{ minHeight: '384px' }}>
         <MapContainer
           center={[centerLat, centerLng]}
           zoom={12}
           scrollWheelZoom={false}
-          style={{ width: '100%', height: '100%', borderRadius: '0.75rem' }}
+          style={{ width: '100%', height: '384px', minHeight: '384px', borderRadius: '0.75rem' }}
         >
+          {/* Map Resize Listener to prevent tile glitching */}
+          <MapResizeListener />
+
           {/* Tile Layer */}
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
