@@ -49,29 +49,29 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center space-x-4 mt-1 sm:mt-0 text-pink-100">
           {/* Backend Connection Indicator */}
           <div className="flex items-center space-x-1 font-mono font-bold text-[10px] px-2 py-0.5 rounded bg-black/30 border border-white/20">
-            <Server className="w-3 h-3 text-amber-300" />
+            <Server className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
             <span>{isBackendConnected ? '🟢 FastAPI Live (port 8000)' : '🟡 Client AI Triage Mode'}</span>
           </div>
 
           <span>|</span>
 
           <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
-            <Home className="w-3 h-3 text-amber-300" />
+            <Home className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
             <span>Home</span>
           </span>
           <span>|</span>
           <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
-            <PhoneCall className="w-3 h-3 text-amber-300" />
+            <PhoneCall className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
             <span>Contact Us</span>
           </span>
           <span>|</span>
           <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
-            <HelpCircle className="w-3 h-3 text-amber-300" />
+            <HelpCircle className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
             <span>FAQs / Help</span>
           </span>
           <span>|</span>
           <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
-            <FileText className="w-3 h-3 text-amber-300" />
+            <FileText className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
             <span>Site Map</span>
           </span>
         </div>
@@ -85,9 +85,13 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Ashoka Lion Capital Emblem & Department Title */}
           <div className="flex items-center space-x-4">
-            <div className="w-14 h-16 shrink-0 flex flex-col items-center justify-center p-1 bg-amber-50/50 rounded-xl border border-amber-200/40">
-              <svg viewBox="0 0 100 120" className="w-10 h-12 text-amber-800 fill-current">
-                {/* Ashoka Emblem Vector Graphic */}
+            <div className="w-14 h-16 shrink-0 flex flex-col items-center justify-center p-1 bg-amber-50/50 rounded-xl border border-amber-200/40" style={{ width: '56px', height: '64px', minWidth: '56px' }}>
+              {/* Ashoka Emblem Vector Graphic with Explicit Fallback Sizing */}
+              <svg 
+                viewBox="0 0 100 120" 
+                className="w-10 h-12 text-amber-800 fill-current" 
+                style={{ width: '40px', height: '48px', minWidth: '40px', minHeight: '48px', maxWidth: '40px', maxHeight: '48px' }}
+              >
                 <path d="M50 5 C55 15, 65 15, 70 5 C75 25, 80 40, 75 60 C70 80, 60 90, 50 115 C40 90, 30 80, 25 60 C20 40, 25 25, 30 5 C35 15, 45 15, 50 5 Z" stroke="currentColor" strokeWidth="2.5" fill="none" />
                 <circle cx="50" cy="45" r="16" stroke="currentColor" strokeWidth="3" fill="none" />
                 <circle cx="50" cy="45" r="4" fill="currentColor" />
@@ -115,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center space-x-3">
             <div className="bg-[#1E3A8A] text-white p-3.5 rounded-xl border-2 border-blue-400/40 shadow-md text-center min-w-[240px]">
               <div className="flex items-center justify-center space-x-2">
-                <ShieldCheck className="w-6 h-6 text-amber-400" />
+                <ShieldCheck className="w-6 h-6 text-amber-400" style={{ width: '24px', height: '24px' }} />
                 <span className="text-2xl font-black tracking-widest text-white font-mono">
                   NIVARAN
                 </span>
@@ -143,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-white hover:bg-[#961247]'
               }`}
             >
-              <UserCheck className="w-4 h-4" />
+              <UserCheck className="w-4 h-4" style={{ width: '16px', height: '16px' }} />
               <span>Citizen Portal</span>
             </button>
 
@@ -155,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-white hover:bg-[#961247]'
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
+              <LayoutDashboard className="w-4 h-4" style={{ width: '16px', height: '16px' }} />
               <span>Nodal Officer Dashboard</span>
               {breachedCount > 0 && (
                 <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping absolute top-1 right-1" />
@@ -170,7 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-white hover:bg-[#961247]'
               }`}
             >
-              <Layers className="w-4 h-4 text-amber-300" />
+              <Layers className="w-4 h-4 text-amber-300" style={{ width: '16px', height: '16px' }} />
               <span>Batch Ingestion Demo</span>
             </button>
           </nav>
@@ -183,12 +187,12 @@ export const Header: React.FC<HeaderProps> = ({
             }`}>
               {breachedCount > 0 ? (
                 <>
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-300 animate-pulse" />
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-300 animate-pulse" style={{ width: '14px', height: '14px' }} />
                   <span>{breachedCount} SLA Breached</span>
                 </>
               ) : (
                 <>
-                  <Activity className="w-3.5 h-3.5 text-emerald-300" />
+                  <Activity className="w-3.5 h-3.5 text-emerald-300" style={{ width: '14px', height: '14px' }} />
                   <span>SLA Active Monitor</span>
                 </>
               )}
@@ -196,7 +200,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Language Selector Dropdown */}
             <div className="flex items-center space-x-1 bg-[#5C082A] px-2.5 py-1 rounded border border-[#961247]">
-              <Globe className="w-3.5 h-3.5 text-amber-300" />
+              <Globe className="w-3.5 h-3.5 text-amber-300" style={{ width: '14px', height: '14px' }} />
               <select className="bg-transparent text-white font-medium text-xs focus:outline-none cursor-pointer">
                 <option value="en" className="bg-slate-900 text-white">Language: English</option>
                 <option value="hi" className="bg-slate-900 text-white">भाषा: हिंदी</option>
@@ -212,12 +216,12 @@ export const Header: React.FC<HeaderProps> = ({
             >
               {isDarkMode ? (
                 <>
-                  <Sun className="w-3.5 h-3.5 text-amber-300" />
+                  <Sun className="w-3.5 h-3.5 text-amber-300" style={{ width: '14px', height: '14px' }} />
                   <span className="text-amber-200">Light Mode</span>
                 </>
               ) : (
                 <>
-                  <Moon className="w-3.5 h-3.5 text-amber-300" />
+                  <Moon className="w-3.5 h-3.5 text-amber-300" style={{ width: '14px', height: '14px' }} />
                   <span className="text-amber-200">Dark Mode</span>
                 </>
               )}
