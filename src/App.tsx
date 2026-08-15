@@ -34,7 +34,7 @@ export function App() {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
 
-  // User Auth State
+  // User Auth State (Null = Citizen View Mode)
   const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(null);
 
   // Modal dialog states
@@ -46,6 +46,8 @@ export function App() {
   // Admin filter states
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
   const [activeActionGrievance, setActiveActionGrievance] = useState<Grievance | null>(null);
+
+  const isOfficerLoggedIn = Boolean(currentUser && (currentUser.role.includes('Nodal') || currentUser.role.includes('Officer') || currentUser.role.includes('Admin')));
 
   // Check backend health & sync initial DB tickets
   useEffect(() => {
@@ -73,6 +75,13 @@ export function App() {
       clearInterval(interval);
     };
   }, []);
+
+  // Ensure unauthenticated users cannot view admin tabs
+  useEffect(() => {
+    if (!isOfficerLoggedIn && (activeTab === 'admin' || activeTab === 'demo')) {
+      setActiveTab('citizen');
+    }
+  }, [isOfficerLoggedIn, activeTab]);
 
   // Breached count for SLA ticker
   const breachedCount = grievances.filter(
@@ -135,12 +144,18 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSignOut = () => {
+    setCurrentUser(null);
+    setActiveTab('citizen');
+    setCitizenSubTab('form');
+  };
+
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
       isDarkMode ? 'bg-slate-955 text-slate-100' : 'bg-[#F4F6F9] text-slate-900'
     }`}>
       
-      {/* Header Navigation with Real-time Multilingual State & Auth */}
+      {/* Header Navigation with Role-Based Privacy Protection */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -156,7 +171,7 @@ export function App() {
         onGoHome={handleGoHome}
         onOpenSignIn={() => setIsSignInOpen(true)}
         currentUser={currentUser}
-        onSignOut={() => setCurrentUser(null)}
+        onSignOut={handleSignOut}
       />
 
       {/* Main Page Container */}
@@ -226,8 +241,8 @@ export function App() {
           </div>
         )}
 
-        {/* VIEW 2: NODAL OFFICER DASHBOARD */}
-        {activeTab === 'admin' && (
+        {/* VIEW 2: NODAL OFFICER DASHBOARD (LOCKED TO OFFICERS ONLY) */}
+        {activeTab === 'admin' && isOfficerLoggedIn && (
           <div className="space-y-8">
             {/* KPI Metric Summary Cards */}
             <KpiCards
@@ -263,8 +278,8 @@ export function App() {
           </div>
         )}
 
-        {/* VIEW 3: BATCH INGESTION DEMO */}
-        {activeTab === 'demo' && (
+        {/* VIEW 3: BATCH INGESTION DEMO (LOCKED TO OFFICERS ONLY) */}
+        {activeTab === 'demo' && isOfficerLoggedIn && (
           <BatchIngestionDemo
             onInjectBatch={handleInjectBatch}
             grievancesCount={grievances.length}
@@ -304,6 +319,12 @@ export function App() {
         onClose={() => setIsSiteMapOpen(false)}
         isDarkMode={isDarkMode}
         onNavigateTab={(tab) => {
+          if (tab === 'admin' || tab === 'demo') {
+            if (!isOfficerLoggedIn) {
+              setIsSignInOpen(true);
+              return;
+            }
+          }
           setActiveTab(tab);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
@@ -316,7 +337,9 @@ export function App() {
         isDarkMode={isDarkMode}
         onLoginSuccess={(user) => {
           setCurrentUser(user);
-          setActiveTab('admin');
+          if (user.role.includes('Nodal') || user.role.includes('Officer') || user.role.includes('Admin')) {
+            setActiveTab('admin');
+          }
         }}
       />
 
