@@ -30,7 +30,7 @@ export function App() {
   const [trackingTicketId, setTrackingTicketId] = useState<string>('G-1001');
   
   // Real-time Multilingual Language State
-  const [currentLanguage, setCurrentLanguage] = useState<Language>('hi');
+  const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
 
