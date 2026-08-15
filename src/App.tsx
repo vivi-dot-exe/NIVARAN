@@ -23,7 +23,9 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'citizen' | 'admin' | 'demo'>('citizen');
   const [citizenSubTab, setCitizenSubTab] = useState<'form' | 'tracker'>('form');
   const [trackingTicketId, setTrackingTicketId] = useState<string>('G-1001');
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  
+  // DEFAULT TO DARK GOVTECH SLATE MODE (User Preferred Theme)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
 
   // Admin filter states
@@ -114,7 +116,7 @@ export function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
-      isDarkMode ? 'bg-slate-955 text-slate-100' : 'bg-[#F4F6F9] text-slate-900'
+      isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#F4F6F9] text-slate-900'
     }`}>
       
       {/* Header Navigation */}
