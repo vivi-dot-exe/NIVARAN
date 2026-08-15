@@ -23,8 +23,25 @@ import {
 } from './services/api';
 import { Search, FileText } from 'lucide-react';
 
+const LOCAL_STORAGE_KEY = 'nivaran_grievances_v2';
+
 export function App() {
-  const [grievances, setGrievances] = useState<Grievance[]>(INITIAL_GRIEVANCES);
+  // PERSISTENT LOCAL STORAGE INITIALIZATION
+  const [grievances, setGrievances] = useState<Grievance[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not parse saved grievances from localStorage:', e);
+    }
+    return INITIAL_GRIEVANCES;
+  });
+
   const [activeTab, setActiveTab] = useState<'citizen' | 'admin' | 'demo'>('citizen');
   const [citizenSubTab, setCitizenSubTab] = useState<'form' | 'tracker'>('form');
   const [trackingTicketId, setTrackingTicketId] = useState<string>('G-1001');
@@ -49,7 +66,16 @@ export function App() {
 
   const isOfficerLoggedIn = Boolean(currentUser && (currentUser.role.includes('Nodal') || currentUser.role.includes('Officer') || currentUser.role.includes('Admin')));
 
-  // Check backend health & sync initial DB tickets
+  // PERSIST TO LOCAL STORAGE WHENEVER GRIEVANCES UPDATE
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(grievances));
+    } catch (e) {
+      console.warn('Failed to save grievances to localStorage:', e);
+    }
+  }, [grievances]);
+
+  // Check backend health & sync DB tickets
   useEffect(() => {
     let isMounted = true;
     async function initBackendSync() {
@@ -60,7 +86,14 @@ export function App() {
         try {
           const apiTickets = await fetchTicketsApi();
           if (apiTickets.length > 0 && isMounted) {
-            setGrievances(apiTickets);
+            setGrievances((prev) => {
+              // Merge API tickets with locally created tickets so no user data is lost
+              const prevMap = new Map(prev.map((item) => [item.Complaint_ID, item]));
+              apiTickets.forEach((t) => {
+                prevMap.set(t.Complaint_ID, t);
+              });
+              return Array.from(prevMap.values());
+            });
           }
         } catch (err) {
           console.warn('Backend sync warning:', err);
@@ -69,7 +102,7 @@ export function App() {
     }
 
     initBackendSync();
-    const interval = setInterval(initBackendSync, 10000);
+    const interval = setInterval(initBackendSync, 15000);
     return () => {
       isMounted = false;
       clearInterval(interval);
