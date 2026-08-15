@@ -4,8 +4,8 @@ import type { Language } from '../../utils/translations';
 import { TRANSLATIONS } from '../../utils/translations';
 import { performAiTriage } from '../../utils/aiTriageEngine';
 import { WARDS_LIST } from '../../mockData/grievances';
+import { NvIcon } from '../common/NvIcon';
 import {
-  Sparkles,
   Send,
   AlertOctagon,
   ThumbsUp,
@@ -136,7 +136,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
           {/* Left Text Column */}
           <div className="lg:col-span-8 space-y-3">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-900/60 border border-blue-400/40 text-blue-200 text-xs font-mono font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+              <NvIcon />
               <span>NIVARAN AI Voice Triage Module</span>
             </div>
 
@@ -463,7 +463,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               isDarkMode ? 'border-slate-800' : 'border-slate-200'
             }`}>
               <div className="flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-[#7A0C38] animate-pulse" />
+                <NvIcon />
                 <h3 className={`font-extrabold text-sm uppercase tracking-wider ${
                   isDarkMode ? 'text-white' : 'text-slate-900'
                 }`}>
@@ -573,7 +573,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               </div>
             ) : (
               <div className="py-12 text-center text-slate-500 space-y-2">
-                <Sparkles className="w-8 h-8 text-slate-400 mx-auto" />
+                <NvIcon className="mx-auto" />
                 <p className="text-xs font-medium">
                   {t.startTyping}
                 </p>

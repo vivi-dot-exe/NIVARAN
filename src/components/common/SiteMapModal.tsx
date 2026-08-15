@@ -1,5 +1,6 @@
 import React from 'react';
-import { X, FileText, ChevronRight, Layers, LayoutDashboard, UserCheck, Server, Sparkles } from 'lucide-react';
+import { X, FileText, ChevronRight, Layers, LayoutDashboard, UserCheck, Server } from 'lucide-react';
+import { NvIcon } from './NvIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SiteMapModalProps {
@@ -146,7 +147,7 @@ export const SiteMapModal: React.FC<SiteMapModalProps> = ({
                     <ul className="space-y-1.5 text-xs text-slate-600 font-medium">
                       {section.links.map((link, lIdx) => (
                         <li key={lIdx} className="flex items-start space-x-1.5">
-                          <Sparkles className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
+                          <NvIcon />
                           <span>{link}</span>
                         </li>
                       ))}

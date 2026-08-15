@@ -3,6 +3,7 @@ import type { Grievance } from '../../types/grievance';
 import type { Language } from '../../utils/translations';
 import { TRANSLATIONS } from '../../utils/translations';
 import { INITIAL_CLUSTERS } from '../../mockData/grievances';
+import { NvIcon } from '../common/NvIcon';
 import {
   ScatterChart,
   Scatter,
@@ -13,7 +14,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
-import { Layers, RefreshCw, Sparkles } from 'lucide-react';
+import { Layers, RefreshCw } from 'lucide-react';
 
 interface BerTopicScatterProps {
   grievances: Grievance[];
@@ -104,7 +105,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
           {selectedClusterId && (
             <button
               onClick={() => onSelectCluster(null)}
-              className="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 border border-amber-400 text-xs font-extrabold shadow-sm hover:bg-amber-400 transition flex items-center space-x-1"
+              className="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-955 border border-amber-400 text-xs font-extrabold shadow-sm hover:bg-amber-400 transition flex items-center space-x-1"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>{t.resetFilter} ({selectedClusterId})</span>
@@ -223,7 +224,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
         </ResponsiveContainer>
 
         <div className="absolute bottom-3 right-3 px-3 py-1 rounded-md bg-white/90 border border-slate-300 text-[10px] font-mono font-bold text-slate-700 flex items-center space-x-1.5 shadow-sm">
-          <Sparkles className="w-3 h-3 text-[#7A0C38]" />
+          <NvIcon />
           <span>{t.pointSizeLegend}</span>
         </div>
       </div>

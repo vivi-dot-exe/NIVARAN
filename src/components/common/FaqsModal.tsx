@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, HelpCircle, ChevronDown, Sparkles, ShieldCheck, Clock } from 'lucide-react';
+import { X, HelpCircle, ChevronDown, ShieldCheck, Clock } from 'lucide-react';
+import { NvIcon } from './NvIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface FaqsModalProps {
@@ -84,7 +85,7 @@ export const FaqsModal: React.FC<FaqsModalProps> = ({
             {/* Quick Badges */}
             <div className="flex flex-wrap gap-2 text-xs font-bold">
               <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 flex items-center space-x-1">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <NvIcon />
                 <span>AI Vector Triage</span>
               </span>
               <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1">
@@ -120,7 +121,7 @@ export const FaqsModal: React.FC<FaqsModalProps> = ({
 
                     {isOpen && (
                       <div className={`p-4 border-t text-xs leading-relaxed font-medium ${
-                        isDarkMode ? 'border-slate-700/80 bg-slate-950/60 text-slate-300' : 'border-slate-200 bg-white text-slate-700'
+                        isDarkMode ? 'border-slate-700/80 bg-slate-955/60 text-slate-300' : 'border-slate-200 bg-white text-slate-700'
                       }`}>
                         {item.a}
                       </div>
