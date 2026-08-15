@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import type { Grievance } from '../../types/grievance';
+import type { Language } from '../../utils/translations';
+import { TRANSLATIONS } from '../../utils/translations';
 import { INITIAL_CLUSTERS } from '../../mockData/grievances';
 import {
   ScatterChart,
@@ -18,6 +20,7 @@ interface BerTopicScatterProps {
   selectedClusterId: string | null;
   onSelectCluster: (clusterId: string | null) => void;
   isDarkMode: boolean;
+  currentLanguage?: Language;
 }
 
 // Deterministic stable coordinate generator to prevent dot jittering
@@ -34,8 +37,11 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
   grievances,
   selectedClusterId,
   onSelectCluster,
-  isDarkMode
+  isDarkMode,
+  currentLanguage = 'en'
 }) => {
+  const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
+
   // Stable memoized scatter coordinates derived from ticket metadata
   const scatterData = useMemo(() => {
     return grievances.map((g) => {
@@ -82,14 +88,14 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
             <h3 className={`font-extrabold text-base uppercase tracking-wide ${
               isDarkMode ? 'text-white' : 'text-slate-900'
             }`}>
-              2D BERTopic AI Embeddings Scatter Map
+              {t.scatterTitle}
             </h3>
             <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#7A0C38] text-white">
-              HDBSCAN Centroids
+              {t.hdbscanBadge}
             </span>
           </div>
           <p className={`text-xs mt-1 font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            Semantic NLP vector clustering derived from BERT transformers. Click any cluster point to filter table complaints.
+            {t.scatterSub}
           </p>
         </div>
 
@@ -101,7 +107,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
               className="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 border border-amber-400 text-xs font-extrabold shadow-sm hover:bg-amber-400 transition flex items-center space-x-1"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>Reset Cluster Filter ({selectedClusterId})</span>
+              <span>{t.resetFilter} ({selectedClusterId})</span>
             </button>
           )}
         </div>
@@ -218,7 +224,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
 
         <div className="absolute bottom-3 right-3 px-3 py-1 rounded-md bg-white/90 border border-slate-300 text-[10px] font-mono font-bold text-slate-700 flex items-center space-x-1.5 shadow-sm">
           <Sparkles className="w-3 h-3 text-[#7A0C38]" />
-          <span>Point size = Composite Priority Score (0-100)</span>
+          <span>{t.pointSizeLegend}</span>
         </div>
       </div>
 

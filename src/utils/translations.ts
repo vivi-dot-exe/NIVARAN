@@ -78,8 +78,36 @@ export const TRANSLATIONS = {
     step3: '3. Nodal Officer Dispatch',
     step4: '4. Verification & Grievance Resolution',
 
+    // KPI Cards
+    totalGrievances: 'Total Grievances',
+    totalGrievancesSub: 'Logged across 5 active municipal wards',
+    pendingAction: 'Pending Action',
+    pendingActionSub: 'Active field dispatches under SLA',
+    resolutionRate: 'Resolution Rate',
+    highRisk: 'HIGH RISK',
+    slaBreachedEscalated: 'SLA Breached / Escalated',
+    nodalInterventionReq: 'Requires Immediate Nodal Intervention',
+    ofTotal: 'of total',
+    todayAdded: '+14 today',
+    targetResolution: 'Target: >80%',
+
+    // BERTopic Scatter
+    scatterTitle: '2D BERTopic AI Embeddings Scatter Map',
+    scatterSub: 'Semantic NLP vector clustering derived from BERT transformers. Click any cluster point to filter table complaints.',
+    hdbscanBadge: 'HDBSCAN Centroids',
+    resetFilter: 'Reset Cluster Filter',
+    pointSizeLegend: 'Point size = Composite Priority Score (0-100)',
+
+    // Geographic Heatmap
+    heatmapTitle: 'Geographic Ward Density Heatmap (Leaflet.js)',
+    heatmapSub: 'Ward-level spatial density mapping of registered civic grievances with departmental layer toggles.',
+    geoJsonBadge: 'GeoJSON Ward Layer',
+    allDepartments: 'All Departments',
+    mapLegend: 'Map Layer Legend',
+
     // Dashboard Table
     masterRegistry: 'Comprehensive Grievance Master Registry',
+    masterRegistrySub: 'Real-time status tracking, color-coded SLA timers, and 1-click nodal action drawer console.',
     ticketsFiltered: 'Tickets Filtered',
     allWards: 'All Wards',
     allDepts: 'All Departments',
@@ -94,7 +122,14 @@ export const TRANSLATIONS = {
     colSla: 'SLA Timer',
     colStatus: 'Status',
     colAction: 'Action',
-    takeAction: 'Take Action'
+    takeAction: 'Take Action',
+
+    // Demo Batch
+    demoTitle: 'Batch Ingestion & Live Auto-Clustering Engine',
+    demoSub: 'Simulate an emergency surge (monsoon cloudburst). Click "Inject 200+ Realistic Civic Complaints" or upload a .CSV / .XLSX dataset file to trigger FastAPI BERTopic HDBSCAN clustering into 5 operational hotspot clouds.',
+    injectBtn: 'Inject 200+ Civic Complaints',
+    uploadBtn: 'Upload .CSV / .XLSX File',
+    totalSystemComplaints: 'Total System Complaints:'
   },
 
   hi: {
@@ -174,8 +209,36 @@ export const TRANSLATIONS = {
     step3: '3. नोडल अधिकारी को कार्य प्रेषित',
     step4: '4. स्थल निरीक्षण एवं समस्या का निवारण',
 
+    // KPI Cards
+    totalGrievances: 'कुल शिकायतें',
+    totalGrievancesSub: '5 सक्रिय नगर निगम वार्डों में दर्ज',
+    pendingAction: 'लंबित कार्रवाई',
+    pendingActionSub: 'SLA के तहत सक्रिय मैदानी कार्रवाई',
+    resolutionRate: 'समाधान दर',
+    highRisk: 'उच्च जोखिम',
+    slaBreachedEscalated: 'SLA समय-सीमा समाप्त / एस्केलेटेड',
+    nodalInterventionReq: 'तत्काल नोडल अधिकारी हस्तक्षेप आवश्यक',
+    ofTotal: 'कुल का',
+    todayAdded: '+14 आज दर्ज',
+    targetResolution: 'लक्ष्य: >80%',
+
+    // BERTopic Scatter
+    scatterTitle: '2D BERTopic AI क्लस्टरिंग प्रकीर्णन मानचित्र',
+    scatterSub: 'BERT ट्रांसफॉर्मर द्वारा जनरेट किया गया सेमेटिक क्लस्टरिंग मैप। शिकायतों को फ़िल्टर करने के लिए किसी भी क्लस्टर बिंदु पर क्लिक करें।',
+    hdbscanBadge: 'HDBSCAN सेंट्रोइड्स',
+    resetFilter: 'क्लस्टर फ़िल्टर रीसेट करें',
+    pointSizeLegend: 'बिंदु आकार = कुल प्राथमिकता स्कोर (0-100)',
+
+    // Geographic Heatmap
+    heatmapTitle: 'भौगोलिक वार्ड घनत्व हीटमैप (Leaflet.js)',
+    heatmapSub: 'विभागीय परतों के साथ पंजीकृत लोक शिकायतों का वार्ड-स्तरीय घनत्व मानचित्र।',
+    geoJsonBadge: 'GeoJSON वार्ड लेयर',
+    allDepartments: 'सभी विभाग',
+    mapLegend: 'मानचित्र परत संकेत',
+
     // Dashboard Table
     masterRegistry: 'समग्र लोक शिकायत मास्टर रजिस्ट्रार',
+    masterRegistrySub: 'वास्तविक समय स्थिति ट्रैकिंग, रंग-कोडित SLA टाइमर, और 1-क्लिक नोडल एक्शन कंसोल।',
     ticketsFiltered: 'कुल शिकायतें',
     allWards: 'सभी वार्ड',
     allDepts: 'सभी विभाग',
@@ -270,8 +333,36 @@ export const TRANSLATIONS = {
     step3: '3. Nodal Officer Dispatch',
     step4: '4. Verification & Resolution',
 
+    // KPI Cards
+    totalGrievances: 'Total Grievances',
+    totalGrievancesSub: 'Logged across 5 active municipal wards',
+    pendingAction: 'Pending Action',
+    pendingActionSub: 'Active field dispatches under SLA',
+    resolutionRate: 'Resolution Rate',
+    highRisk: 'HIGH RISK',
+    slaBreachedEscalated: 'SLA Breached / Escalated',
+    nodalInterventionReq: 'Requires Immediate Nodal Intervention',
+    ofTotal: 'of total',
+    todayAdded: '+14 today',
+    targetResolution: 'Target: >80%',
+
+    // BERTopic Scatter
+    scatterTitle: '2D BERTopic AI Embeddings Scatter Map',
+    scatterSub: 'Semantic NLP vector clustering derived from BERT transformers. Click any cluster point to filter table complaints.',
+    hdbscanBadge: 'HDBSCAN Centroids',
+    resetFilter: 'Reset Cluster Filter',
+    pointSizeLegend: 'Point size = Composite Priority Score (0-100)',
+
+    // Geographic Heatmap
+    heatmapTitle: 'Geographic Ward Density Heatmap (Leaflet.js)',
+    heatmapSub: 'Ward-level spatial density mapping of registered civic grievances with departmental layer toggles.',
+    geoJsonBadge: 'GeoJSON Ward Layer',
+    allDepartments: 'All Departments',
+    mapLegend: 'Map Layer Legend',
+
     // Dashboard Table
     masterRegistry: 'Comprehensive Grievance Master Registry',
+    masterRegistrySub: 'Real-time status tracking, color-coded SLA timers, and 1-click nodal action drawer console.',
     ticketsFiltered: 'Tickets Filtered',
     allWards: 'All Wards',
     allDepts: 'All Departments',

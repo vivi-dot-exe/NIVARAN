@@ -206,7 +206,11 @@ export function App() {
         {activeTab === 'admin' && (
           <div className="space-y-8">
             {/* KPI Metric Summary Cards */}
-            <KpiCards grievances={grievances} isDarkMode={isDarkMode} />
+            <KpiCards
+              grievances={grievances}
+              isDarkMode={isDarkMode}
+              currentLanguage={currentLanguage}
+            />
 
             {/* 2D BERTopic Scatter Cluster Map */}
             <BerTopicScatter
@@ -214,10 +218,15 @@ export function App() {
               selectedClusterId={selectedClusterId}
               onSelectCluster={setSelectedClusterId}
               isDarkMode={isDarkMode}
+              currentLanguage={currentLanguage}
             />
 
             {/* Geographic Ward Heatmap */}
-            <GeographicHeatmap grievances={grievances} isDarkMode={isDarkMode} />
+            <GeographicHeatmap
+              grievances={grievances}
+              isDarkMode={isDarkMode}
+              currentLanguage={currentLanguage}
+            />
 
             {/* Comprehensive Grievance Master Table */}
             <GrievanceTable
@@ -225,6 +234,7 @@ export function App() {
               selectedClusterId={selectedClusterId}
               onSelectGrievance={setActiveActionGrievance}
               isDarkMode={isDarkMode}
+              currentLanguage={currentLanguage}
             />
           </div>
         )}

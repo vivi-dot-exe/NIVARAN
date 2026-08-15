@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Grievance } from '../../types/grievance';
+import type { Language } from '../../utils/translations';
+import { TRANSLATIONS } from '../../utils/translations';
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
 import { MapPin } from 'lucide-react';
 import { DEPARTMENTS_LIST } from '../../mockData/grievances';
@@ -7,6 +9,7 @@ import { DEPARTMENTS_LIST } from '../../mockData/grievances';
 interface GeographicHeatmapProps {
   grievances: Grievance[];
   isDarkMode: boolean;
+  currentLanguage?: Language;
 }
 
 // Leaflet resize listener component to fix tile rendering/cutoff glitch on mount
@@ -23,8 +26,11 @@ function MapResizeListener() {
 
 export const GeographicHeatmap: React.FC<GeographicHeatmapProps> = ({
   grievances,
-  isDarkMode
+  isDarkMode,
+  currentLanguage = 'en'
 }) => {
+  const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
+
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string | null>(null);
 
   const filteredGrievances = selectedDeptFilter
@@ -61,14 +67,14 @@ export const GeographicHeatmap: React.FC<GeographicHeatmapProps> = ({
             <h3 className={`font-extrabold text-base uppercase tracking-wide ${
               isDarkMode ? 'text-white' : 'text-slate-900'
             }`}>
-              Geographic Ward Density Heatmap (Leaflet.js)
+              {t.heatmapTitle}
             </h3>
             <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#7A0C38] text-white">
-              GeoJSON Ward Layer
+              {t.geoJsonBadge}
             </span>
           </div>
           <p className={`text-xs mt-1 font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            Ward-level spatial density mapping of registered civic grievances with departmental layer toggles.
+            {t.heatmapSub}
           </p>
         </div>
 
@@ -82,7 +88,7 @@ export const GeographicHeatmap: React.FC<GeographicHeatmapProps> = ({
                 : isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
             }`}
           >
-            All Departments ({grievances.length})
+            {t.allDepartments} ({grievances.length})
           </button>
           {DEPARTMENTS_LIST.map((dept) => (
             <button
@@ -108,7 +114,7 @@ export const GeographicHeatmap: React.FC<GeographicHeatmapProps> = ({
           scrollWheelZoom={false}
           style={{ width: '100%', height: '384px', minHeight: '384px', borderRadius: '0.75rem' }}
         >
-          {/* Map Resize Listener to prevent tile glitching */}
+          {/* Map Resize Listener */}
           <MapResizeListener />
 
           {/* Tile Layer */}
@@ -162,7 +168,7 @@ export const GeographicHeatmap: React.FC<GeographicHeatmapProps> = ({
         <div className={`absolute bottom-3 left-3 z-[1000] p-2.5 rounded-xl border backdrop-blur-md text-[10px] space-y-1 ${
           isDarkMode ? 'bg-slate-900/90 border-slate-800 text-slate-300' : 'bg-white/95 border-slate-300 text-slate-800 shadow-md'
         }`}>
-          <span className="font-extrabold block uppercase text-slate-500">Map Layer Legend</span>
+          <span className="font-extrabold block uppercase text-slate-500">{t.mapLegend}</span>
           <div className="flex items-center space-x-3 font-bold">
             <span className="flex items-center space-x-1"><span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /><span>Water</span></span>
             <span className="flex items-center space-x-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /><span>Infra</span></span>

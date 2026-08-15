@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import type { Grievance } from '../../types/grievance';
+import type { Language } from '../../utils/translations';
+import { TRANSLATIONS } from '../../utils/translations';
 import { WARDS_LIST, DEPARTMENTS_LIST } from '../../mockData/grievances';
 import {
   Search,
@@ -16,14 +18,18 @@ interface GrievanceTableProps {
   selectedClusterId: string | null;
   onSelectGrievance: (grievance: Grievance) => void;
   isDarkMode: boolean;
+  currentLanguage?: Language;
 }
 
 export const GrievanceTable: React.FC<GrievanceTableProps> = ({
   grievances,
   selectedClusterId,
   onSelectGrievance,
-  isDarkMode
+  isDarkMode,
+  currentLanguage = 'en'
 }) => {
+  const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWard, setSelectedWard] = useState<string>('ALL');
   const [selectedDept, setSelectedDept] = useState<string>('ALL');
@@ -122,13 +128,13 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
           <h3 className={`font-extrabold text-base uppercase tracking-wide flex items-center space-x-2 ${
             isDarkMode ? 'text-white' : 'text-slate-900'
           }`}>
-            <span>Comprehensive Grievance Master Registry</span>
+            <span>{t.masterRegistry}</span>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#7A0C38] text-white">
-              {filteredData.length} Tickets Filtered
+              {filteredData.length} {t.ticketsFiltered}
             </span>
           </h3>
           <p className={`text-xs mt-0.5 font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            Real-time status tracking, color-coded SLA timers, and 1-click nodal action drawer console.
+            {t.masterRegistrySub}
           </p>
         </div>
 
@@ -143,7 +149,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>{showDuplicatesOnly ? 'Showing Duplicates Only' : 'Filter Duplicates'}</span>
+            <span>{t.filterDuplicates}</span>
           </button>
 
           <button
@@ -155,7 +161,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
             }`}
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
+            <span>{t.exportCsv}</span>
           </button>
         </div>
       </div>
@@ -187,7 +193,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
               isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
             }`}
           >
-            <option value="ALL">All Wards</option>
+            <option value="ALL">{t.allWards}</option>
             {WARDS_LIST.map((w) => (
               <option key={w} value={w}>
                 {w}
@@ -205,7 +211,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
               isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
             }`}
           >
-            <option value="ALL">All Departments</option>
+            <option value="ALL">{t.allDepts}</option>
             {DEPARTMENTS_LIST.map((d) => (
               <option key={d} value={d}>
                 {d}
@@ -223,7 +229,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
               isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
             }`}
           >
-            <option value="ALL">All Priorities</option>
+            <option value="ALL">{t.allPriorities}</option>
             <option value="Critical">Critical (&gt;85)</option>
             <option value="High">High (70-84)</option>
             <option value="Medium">Medium (45-69)</option>
@@ -240,7 +246,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
               isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
             }`}
           >
-            <option value="ALL">All Statuses</option>
+            <option value="ALL">{t.allStatuses}</option>
             <option value="Pending">Pending</option>
             <option value="In Progress">In Progress</option>
             <option value="Resolved">Resolved</option>
@@ -256,13 +262,13 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-[#7A0C38] text-white border-b border-[#961247]">
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">Complaint ID</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">Grievance & Language</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">Department & Ward</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">Priority Score</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">SLA Timer</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">Status</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider text-right">Action</th>
+              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colId}</th>
+              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colText}</th>
+              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colDept}</th>
+              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colPriority}</th>
+              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colSla}</th>
+              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colStatus}</th>
+              <th className="p-3.5 font-extrabold uppercase tracking-wider text-right">{t.colAction}</th>
             </tr>
           </thead>
           <tbody className={`divide-y font-sans ${
@@ -397,7 +403,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
                       className="px-3 py-1.5 rounded-lg bg-[#7A0C38] hover:bg-[#961247] text-white font-extrabold text-xs transition shadow-sm flex items-center space-x-1 ml-auto"
                     >
                       <Edit className="w-3.5 h-3.5" />
-                      <span>Take Action</span>
+                      <span>{t.takeAction}</span>
                     </button>
                   </td>
                 </tr>
