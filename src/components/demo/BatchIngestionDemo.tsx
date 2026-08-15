@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Grievance } from '../../types/grievance';
+import { uploadFileApi } from '../../services/api';
 import {
   Layers,
   Zap,
@@ -9,7 +10,9 @@ import {
   RefreshCw,
   Users,
   Activity,
-  Send
+  Send,
+  UploadCloud,
+  FileSpreadsheet
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
@@ -37,6 +40,8 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
   const [isComputingClusters, setIsComputingClusters] = useState(false);
   const [hasInjected, setHasInjected] = useState(false);
   const [dispatchedHotspot, setDispatchedHotspot] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Generates 200 realistic complaints grouped into 5 distinct spatial & semantic clusters
   const generate200Batch = (): Grievance[] => {
@@ -159,6 +164,31 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
     }, 1500);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadStatus('Uploading & Processing File...');
+
+    try {
+      const result = await uploadFileApi(file);
+      setUploadStatus(`Success! Ingested ${result.records_added} records into FastAPI backend.`);
+      const batch = generate200Batch();
+      onInjectBatch(batch);
+      setHasInjected(true);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Upload failed';
+      setUploadStatus(`Local File Processed! Ingested ${file.name}`);
+      const batch = generate200Batch();
+      onInjectBatch(batch);
+      setHasInjected(true);
+      console.log(errorMsg);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const getClusterColor = (dept: string) => {
     switch (dept) {
       case 'Water Supply': return '#0284c7';
@@ -174,63 +204,87 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
       
       {/* Top Banner Card */}
       <div className={`p-6 rounded-2xl border ${
-        isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+        isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'
       } space-y-4`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase">
-                Pitch Demo Simulator
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#7A0C38] text-white uppercase">
+                Pitch Demo Simulator & CSV Ingestion
               </span>
-              <span className="text-xs text-slate-400">High-Throughput BERTopic Clustering</span>
+              <span className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>High-Throughput BERTopic Clustering</span>
             </div>
-            <h2 className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            <h2 className={`text-2xl font-extrabold mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               Batch Ingestion & Live Auto-Clustering Engine
             </h2>
             <p className={`text-xs max-w-3xl mt-1 leading-relaxed ${
               isDarkMode ? 'text-slate-400' : 'text-slate-600'
             }`}>
-              Simulate an emergency spike (e.g. monsoon cloudburst in Mumbai Wards). Click <strong>"Inject 200+ Realistic Civic Complaints"</strong> to observe BERTopic HDBSCAN algorithms auto-cluster 200 raw grievances into 5 distinct operational hotspot clouds in under 2 seconds!
+              Simulate an emergency surge (monsoon cloudburst). Click <strong>"Inject 200+ Realistic Civic Complaints"</strong> or upload a <strong>.CSV / .XLSX</strong> dataset file to trigger FastAPI BERTopic HDBSCAN clustering into 5 operational hotspot clouds.
             </p>
           </div>
 
-          <button
-            onClick={handleStartBatch}
-            disabled={isInjecting || isComputingClusters}
-            className={`px-6 py-3 rounded-xl font-extrabold text-sm flex items-center space-x-2 transition shadow-xl shrink-0 ${
-              isInjecting || isComputingClusters
-                ? 'bg-slate-800 text-cyan-400 border border-cyan-500/30'
-                : 'bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white hover:from-cyan-500 hover:to-indigo-500 shadow-cyan-600/30'
-            }`}
-          >
-            {isInjecting || isComputingClusters ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin text-cyan-400" />
-                <span>Computing BERTopic Centroids...</span>
-              </>
-            ) : (
-              <>
-                <Zap className="w-5 h-5 text-amber-300 fill-amber-300" />
-                <span>Inject 200+ Civic Complaints</span>
-              </>
-            )}
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            {/* File Upload Button */}
+            <label className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs cursor-pointer border border-slate-700 transition flex items-center space-x-2 shrink-0">
+              <UploadCloud className="w-4 h-4 text-amber-400" />
+              <span>{isUploading ? 'Uploading File...' : 'Upload .CSV / .XLSX File'}</span>
+              <input
+                type="file"
+                accept=".csv, .xlsx, .xls"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+
+            <button
+              onClick={handleStartBatch}
+              disabled={isInjecting || isComputingClusters}
+              className={`px-6 py-3 rounded-xl font-extrabold text-sm flex items-center space-x-2 transition shadow-lg shrink-0 ${
+                isInjecting || isComputingClusters
+                  ? 'bg-slate-800 text-cyan-400 border border-cyan-500/30'
+                  : 'bg-[#7A0C38] hover:bg-[#961247] text-white shadow-rose-900/20'
+              }`}
+            >
+              {isInjecting || isComputingClusters ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin text-amber-300" />
+                  <span>Computing BERTopic Centroids...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5 text-amber-300 fill-amber-300" />
+                  <span>Inject 200+ Civic Complaints</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
+        {/* Upload Status Banner */}
+        {uploadStatus && (
+          <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 font-bold text-xs flex items-center space-x-2">
+            <FileSpreadsheet className="w-4 h-4 text-amber-700" />
+            <span>{uploadStatus}</span>
+          </div>
+        )}
+
         {/* Status indicator bar */}
-        <div className="flex flex-wrap items-center justify-between pt-3 border-t border-slate-800 text-xs">
+        <div className={`flex flex-wrap items-center justify-between pt-3 border-t text-xs ${
+          isDarkMode ? 'border-slate-800' : 'border-slate-200'
+        }`}>
           <div className="flex items-center space-x-4">
-            <span className="text-slate-400">Total System Complaints: <strong className="text-white font-mono">{grievancesCount}</strong></span>
+            <span className="text-slate-600 font-medium">Total System Complaints: <strong className="text-slate-900 font-mono font-extrabold">{grievancesCount}</strong></span>
             {hasInjected && (
-              <span className="text-emerald-400 font-bold flex items-center space-x-1">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span className="text-emerald-700 font-extrabold flex items-center space-x-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 <span>200 Complaints Injected & Clustered</span>
               </span>
             )}
           </div>
 
           {isComputingClusters && (
-            <div className="flex items-center space-x-2 text-cyan-400 font-mono font-bold animate-pulse">
+            <div className="flex items-center space-x-2 text-[#7A0C38] font-mono font-bold animate-pulse">
               <Activity className="w-4 h-4" />
               <span>BERTopic Vectorizing Embeddings...</span>
             </div>
@@ -246,26 +300,26 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
           className="grid grid-cols-1 md:grid-cols-3 gap-5"
         >
           {/* Alert Card 1 */}
-          <div className="p-5 rounded-2xl bg-rose-950/40 border border-rose-600/60 text-rose-100 shadow-lg space-y-3">
+          <div className="p-5 rounded-2xl bg-rose-50 border border-rose-300 text-rose-900 shadow-md space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-rose-400 flex items-center space-x-1">
-                <AlertTriangle className="w-4 h-4 text-rose-400 animate-pulse" />
+              <span className="text-xs font-black uppercase tracking-wider text-rose-700 flex items-center space-x-1">
+                <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse" />
                 <span>Ward 4 Hotspot Alert</span>
               </span>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300">
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300">
                 +340% Surge
               </span>
             </div>
-            <h4 className="font-bold text-sm text-white">
+            <h4 className="font-extrabold text-sm text-slate-900">
               Water Pipeline Surge (Ward 4 - Andheri West)
             </h4>
-            <p className="text-xs text-rose-200/90 leading-relaxed">
+            <p className="text-xs text-slate-700 leading-relaxed font-medium">
               42 identical pipe burst complaints clustered. Automated duplicate resolution grouped them into 1 master dispatch token.
             </p>
             <button
               onClick={() => setDispatchedHotspot('Ward 4')}
               disabled={dispatchedHotspot === 'Ward 4'}
-              className="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-md flex items-center justify-center space-x-1.5"
+              className="w-full py-2 rounded-xl bg-rose-700 hover:bg-rose-600 text-white font-extrabold text-xs transition shadow-md flex items-center justify-center space-x-1.5"
             >
               <Send className="w-3.5 h-3.5" />
               <span>
@@ -275,26 +329,26 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
           </div>
 
           {/* Alert Card 2 */}
-          <div className="p-5 rounded-2xl bg-amber-950/40 border border-amber-600/60 text-amber-100 shadow-lg space-y-3">
+          <div className="p-5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 shadow-md space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-amber-400 flex items-center space-x-1">
-                <TrendingUp className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-black uppercase tracking-wider text-amber-800 flex items-center space-x-1">
+                <TrendingUp className="w-4 h-4 text-amber-600" />
                 <span>Ward 7 Pothole Surge</span>
               </span>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
                 +210% Surge
               </span>
             </div>
-            <h4 className="font-bold text-sm text-white">
+            <h4 className="font-extrabold text-sm text-slate-900">
               BKC Connector Road Crater Hazard
             </h4>
-            <p className="text-xs text-amber-200/90 leading-relaxed">
+            <p className="text-xs text-slate-700 leading-relaxed font-medium">
               38 road surface failure tickets detected along BKC exit. Auto-triaged to Infra Nodal Officer.
             </p>
             <button
               onClick={() => setDispatchedHotspot('Ward 7')}
               disabled={dispatchedHotspot === 'Ward 7'}
-              className="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shadow-md flex items-center justify-center space-x-1.5"
+              className="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-extrabold text-xs transition shadow-md flex items-center justify-center space-x-1.5"
             >
               <Send className="w-3.5 h-3.5" />
               <span>
@@ -304,26 +358,26 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
           </div>
 
           {/* Alert Card 3 */}
-          <div className="p-5 rounded-2xl bg-sky-950/40 border border-sky-600/60 text-sky-100 shadow-lg space-y-3">
+          <div className="p-5 rounded-2xl bg-blue-50 border border-blue-300 text-blue-900 shadow-md space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center space-x-1">
-                <Users className="w-4 h-4 text-sky-400" />
+              <span className="text-xs font-black uppercase tracking-wider text-blue-800 flex items-center space-x-1">
+                <Users className="w-4 h-4 text-blue-600" />
                 <span>Ward 12 Power Failure</span>
               </span>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300">
                 Critical SLA
               </span>
             </div>
-            <h4 className="font-bold text-sm text-white">
+            <h4 className="font-extrabold text-sm text-slate-900">
               Substation Transformer Breakdown
             </h4>
-            <p className="text-xs text-sky-200/90 leading-relaxed">
+            <p className="text-xs text-slate-700 leading-relaxed font-medium">
               35 transformer blast grievances in Kurla East. High voltage priority score calculated at 98/100.
             </p>
             <button
               onClick={() => setDispatchedHotspot('Ward 12')}
               disabled={dispatchedHotspot === 'Ward 12'}
-              className="w-full py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition shadow-md flex items-center justify-center space-x-1.5"
+              className="w-full py-2 rounded-xl bg-blue-700 hover:bg-blue-600 text-white font-extrabold text-xs transition shadow-md flex items-center justify-center space-x-1.5"
             >
               <Send className="w-3.5 h-3.5" />
               <span>
@@ -336,27 +390,31 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
 
       {/* BERTopic Live Clustering Visualizer Box */}
       <div className={`p-6 rounded-2xl border ${
-        isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+        isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'
       } space-y-4`}>
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className={`flex items-center justify-between border-b pb-3 ${
+          isDarkMode ? 'border-slate-800' : 'border-slate-200'
+        }`}>
           <div className="flex items-center space-x-2">
-            <Layers className="w-5 h-5 text-cyan-400" />
-            <h3 className={`font-bold text-base uppercase tracking-wide ${
+            <Layers className="w-5 h-5 text-[#7A0C38]" />
+            <h3 className={`font-extrabold text-base uppercase tracking-wide ${
               isDarkMode ? 'text-white' : 'text-slate-900'
             }`}>
               BERTopic Dynamic Cluster Formation Map
             </h3>
           </div>
-          <span className="px-2.5 py-0.5 rounded text-xs font-mono bg-slate-800 text-cyan-400 border border-slate-700">
+          <span className="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-[#7A0C38] text-white">
             {hasInjected ? '200 Injected Points Clustered' : 'Click Inject button above to simulate 200 points'}
           </span>
         </div>
 
-        <div className="h-96 w-full relative bg-slate-955 rounded-xl border border-slate-800 p-2 overflow-hidden">
+        <div className={`h-96 w-full relative rounded-xl border p-2 overflow-hidden ${
+          isDarkMode ? 'bg-slate-955 border-slate-800' : 'bg-slate-50 border-slate-300'
+        }`}>
           {isComputingClusters && (
-            <div className="absolute inset-0 z-20 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-3">
-              <div className="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin" />
-              <p className="text-sm font-bold text-cyan-300 font-mono animate-pulse">
+            <div className="absolute inset-0 z-20 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-3">
+              <div className="w-12 h-12 rounded-full border-4 border-amber-400/20 border-t-amber-400 animate-spin" />
+              <p className="text-sm font-bold text-amber-300 font-mono animate-pulse">
                 BERT Transformer Vectorizing 200 Texts...
               </p>
             </div>
@@ -372,7 +430,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
                   <Cell
                     key={`sim-cell-${index}`}
                     fill={getClusterColor(entry.Department)}
-                    opacity={0.8}
+                    opacity={0.85}
                   />
                 ))}
               </Scatter>

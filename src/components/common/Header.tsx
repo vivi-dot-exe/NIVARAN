@@ -12,7 +12,8 @@ import {
   Home,
   HelpCircle,
   PhoneCall,
-  FileText
+  FileText,
+  Server
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -21,6 +22,7 @@ interface HeaderProps {
   isDarkMode: boolean;
   setIsDarkMode: (val: boolean) => void;
   breachedCount: number;
+  isBackendConnected?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,7 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   isDarkMode,
   setIsDarkMode,
-  breachedCount
+  breachedCount,
+  isBackendConnected = false
 }) => {
   return (
     <header className="w-full shadow-md transition-colors duration-200">
@@ -44,6 +47,14 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center space-x-4 mt-1 sm:mt-0 text-pink-100">
+          {/* Backend Connection Indicator */}
+          <div className="flex items-center space-x-1 font-mono font-bold text-[10px] px-2 py-0.5 rounded bg-black/30 border border-white/20">
+            <Server className="w-3 h-3 text-amber-300" />
+            <span>{isBackendConnected ? '🟢 FastAPI Live (port 8000)' : '🟡 Client AI Triage Mode'}</span>
+          </div>
+
+          <span>|</span>
+
           <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
             <Home className="w-3 h-3 text-amber-300" />
             <span>Home</span>

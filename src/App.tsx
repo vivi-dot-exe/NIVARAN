@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Grievance } from './types/grievance';
 import { INITIAL_GRIEVANCES } from './mockData/grievances';
 import { Header } from './components/common/Header';
@@ -10,6 +10,12 @@ import { GeographicHeatmap } from './components/admin/GeographicHeatmap';
 import { GrievanceTable } from './components/admin/GrievanceTable';
 import { ActionDrawer } from './components/admin/ActionDrawer';
 import { BatchIngestionDemo } from './components/demo/BatchIngestionDemo';
+import {
+  checkBackendHealth,
+  fetchTicketsApi,
+  createTicketApi,
+  updateTicketStatusApi
+} from './services/api';
 import { Search, FileText } from 'lucide-react';
 
 export function App() {
@@ -17,21 +23,63 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'citizen' | 'admin' | 'demo'>('citizen');
   const [citizenSubTab, setCitizenSubTab] = useState<'form' | 'tracker'>('form');
   const [trackingTicketId, setTrackingTicketId] = useState<string>('G-1001');
-  
-  // DEFAULT TO LIGHT MODE (Official NIC / GovTech Standard)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
 
   // Admin filter states
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
   const [activeActionGrievance, setActiveActionGrievance] = useState<Grievance | null>(null);
+
+  // Check backend health & sync initial DB tickets
+  useEffect(() => {
+    let isMounted = true;
+    async function initBackendSync() {
+      const isAlive = await checkBackendHealth();
+      if (isMounted) setIsBackendConnected(isAlive);
+
+      if (isAlive) {
+        try {
+          const apiTickets = await fetchTicketsApi();
+          if (apiTickets.length > 0 && isMounted) {
+            setGrievances(apiTickets);
+          }
+        } catch (err) {
+          console.warn('Backend sync warning:', err);
+        }
+      }
+    }
+
+    initBackendSync();
+    const interval = setInterval(initBackendSync, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Breached count for SLA ticker
   const breachedCount = grievances.filter(
     (g) => g.Status === 'Escalated' || (g.Priority_Score >= 90 && g.Status !== 'Resolved')
   ).length;
 
-  const handleAddGrievance = (newTicket: Grievance) => {
+  const handleAddGrievance = async (newTicket: Grievance) => {
     setGrievances((prev) => [newTicket, ...prev]);
+
+    if (isBackendConnected) {
+      try {
+        const savedApiTicket = await createTicketApi(
+          newTicket.Complaint,
+          newTicket.Ward,
+          newTicket.Department,
+          newTicket.Priority_Score
+        );
+        setGrievances((prev) =>
+          prev.map((g) => (g.Complaint_ID === newTicket.Complaint_ID ? savedApiTicket : g))
+        );
+      } catch (err) {
+        console.warn('FastAPI ticket save fallback:', err);
+      }
+    }
   };
 
   const handleUpvoteGrievance = (id: string) => {
@@ -40,10 +88,18 @@ export function App() {
     );
   };
 
-  const handleUpdateGrievance = (updated: Grievance) => {
+  const handleUpdateGrievance = async (updated: Grievance) => {
     setGrievances((prev) =>
       prev.map((g) => (g.Complaint_ID === updated.Complaint_ID ? updated : g))
     );
+
+    if (isBackendConnected) {
+      try {
+        await updateTicketStatusApi(updated.Complaint_ID, updated.Status);
+      } catch (err) {
+        console.warn('FastAPI status patch fallback:', err);
+      }
+    }
   };
 
   const handleInjectBatch = (newBatch: Grievance[]) => {
@@ -58,7 +114,7 @@ export function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
-      isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#F4F6F9] text-slate-900'
+      isDarkMode ? 'bg-slate-955 text-slate-100' : 'bg-[#F4F6F9] text-slate-900'
     }`}>
       
       {/* Header Navigation */}
@@ -68,6 +124,7 @@ export function App() {
         isDarkMode={isDarkMode}
         setIsDarkMode={setIsDarkMode}
         breachedCount={breachedCount}
+        isBackendConnected={isBackendConnected}
       />
 
       {/* Main Page Container */}
