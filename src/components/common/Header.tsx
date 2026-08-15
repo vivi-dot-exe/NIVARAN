@@ -268,7 +268,7 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <option value="en" className="bg-slate-900 text-white">Language: English</option>
                 <option value="hi" className="bg-slate-900 text-white">भाषा: हिंदी</option>
-                <option value="hinglish" className="bg-slate-900 text-white">Language: Hinglish</option>
+                <option value="mr" className="bg-slate-900 text-white">भाषा: मराठी</option>
               </select>
             </div>
 

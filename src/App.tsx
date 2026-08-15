@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Grievance } from './types/grievance';
 import type { Language } from './utils/translations';
+import { TRANSLATIONS } from './utils/translations';
 import { INITIAL_GRIEVANCES } from './mockData/grievances';
 import { Header } from './components/common/Header';
 import { ContactUsModal } from './components/common/ContactUsModal';
@@ -228,11 +229,7 @@ export function App() {
               >
                 <FileText className="w-4 h-4" />
                 <span>
-                  {currentLanguage === 'hi' 
-                    ? '1. शिकायत दर्ज करें (निवारण AI विश्लेषण)' 
-                    : currentLanguage === 'hinglish' 
-                    ? '1. Complaint Lodge Karein (NIVARAN AI)' 
-                    : '1. Lodge Grievance (NIVARAN AI Triage)'}
+                  {TRANSLATIONS[currentLanguage]?.lodgeTab || TRANSLATIONS.en.lodgeTab}
                 </span>
               </button>
 
@@ -246,11 +243,7 @@ export function App() {
               >
                 <Search className="w-4 h-4" />
                 <span>
-                  {currentLanguage === 'hi' 
-                    ? '2. स्थिति एवं SLA टाइमर ट्रैक करें' 
-                    : currentLanguage === 'hinglish' 
-                    ? '2. Status & SLA Timer Track Karein' 
-                    : '2. Track Status & SLA Timer'}
+                  {TRANSLATIONS[currentLanguage]?.trackTab || TRANSLATIONS.en.trackTab}
                 </span>
               </button>
             </div>
