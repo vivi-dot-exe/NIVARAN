@@ -75,6 +75,7 @@ export async function fetchTicketsApi(): Promise<Grievance[]> {
 }
 
 export async function createTicketApi(
+  id: string,
   text: string,
   location: string,
   category?: string,
@@ -83,7 +84,7 @@ export async function createTicketApi(
   const res = await fetch(`${API_BASE_URL}/api/tickets`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, location, category, priority_score: priorityScore })
+    body: JSON.stringify({ id, text, location, category, priority_score: priorityScore })
   });
   if (!res.ok) throw new Error('Failed to create ticket in FastAPI backend');
   const data: BackendTicket = await res.json();

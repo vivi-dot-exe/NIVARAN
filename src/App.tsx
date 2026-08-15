@@ -128,6 +128,7 @@ export function App() {
     if (isBackendConnected) {
       try {
         const savedApiTicket = await createTicketApi(
+          newTicket.Complaint_ID,
           newTicket.Complaint,
           newTicket.Ward,
           newTicket.Department,

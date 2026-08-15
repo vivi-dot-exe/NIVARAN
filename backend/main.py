@@ -2,6 +2,7 @@ import io
 from datetime import datetime
 from typing import List, Optional
 import uuid
+import uvicorn
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,6 +37,7 @@ def root():
 
 # Pydantic Schemas
 class TicketCreate(BaseModel):
+    id: Optional[str] = None
     text: str
     location: str
     category: Optional[str] = None
@@ -80,7 +82,23 @@ def create_ticket(ticket_in: TicketCreate, db: Session = Depends(get_db)):
         else ml_result.get("priority_score", 50)
     )
 
-    ticket_id = f"G-{uuid.uuid4().hex[:4].upper()}"
+    ticket_id = (
+        ticket_in.id.strip()
+        if (ticket_in.id and ticket_in.id.strip())
+        else f"G-{uuid.uuid4().hex[:4].upper()}"
+    )
+
+    # Check if ticket already exists
+    existing = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if existing:
+        existing.text = ticket_in.text
+        existing.location = ticket_in.location
+        existing.category = category
+        existing.priority_score = priority_score
+        db.commit()
+        db.refresh(existing)
+        return existing
+
     new_ticket = models.Ticket(
         id=ticket_id,
         text=ticket_in.text,
@@ -98,91 +116,63 @@ def create_ticket(ticket_in: TicketCreate, db: Session = Depends(get_db)):
 
 @app.get("/api/tickets", response_model=List[TicketResponse])
 def get_tickets(db: Session = Depends(get_db)):
-    tickets = db.query(models.Ticket).all()
-    return tickets
+    return db.query(models.Ticket).order_by(models.Ticket.created_at.desc()).all()
 
 
 @app.patch("/api/tickets/{ticket_id}", response_model=TicketResponse)
 def update_ticket_status(
-    ticket_id: str,
-    ticket_update: TicketUpdateStatus,
-    db: Session = Depends(get_db),
+    ticket_id: str, status_in: TicketUpdateStatus, db: Session = Depends(get_db)
 ):
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Ticket with ID '{ticket_id}' not found",
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found"
         )
-    ticket.status = ticket_update.status
+
+    ticket.status = status_in.status
     db.commit()
     db.refresh(ticket)
     return ticket
 
 
 @app.post("/api/analyze")
-def analyze_text(payload: AnalyzeRequest):
-    """
-    Directly analyze a single grievance text for predicted category, urgency score, and confidence.
-    """
-    return analyze_grievance(payload.text)
+def analyze_text(req: AnalyzeRequest):
+    return analyze_grievance(req.text)
 
 
-@app.get("/api/analytics/clusters")
-def get_topic_clusters(min_topic_size: int = 3, db: Session = Depends(get_db)):
-    """
-    Runs BERTopic semantic clustering on all stored grievances to discover emerging trends/issues.
-    """
-    tickets = db.query(models.Ticket).all()
-    texts = [t.text for t in tickets if t.text and len(t.text.strip()) > 0]
-    return run_batch_clustering(texts, min_topic_size=min_topic_size)
-
-
-@app.post("/api/upload-file", summary="Upload Grievances File (.csv, .xlsx, .xls)")
-@app.post("/api/upload-csv", include_in_schema=False)
-async def upload_file(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-):
-    filename = (file.filename or "").lower()
-    
-    if not (filename.endswith(".csv") or filename.endswith(".xlsx") or filename.endswith(".xslx") or filename.endswith(".xls")):
+@app.post("/api/upload-file")
+async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    if not (file.filename.endswith(".csv") or file.filename.endswith(".xlsx")):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be a valid .csv, .xlsx, or .xls file",
+            status_code=400, detail="Only .csv and .xlsx files are supported"
         )
 
+    contents = await file.read()
+
     try:
-        contents = await file.read()
-        if filename.endswith(".csv"):
+        if file.filename.endswith(".csv"):
             df = pd.read_csv(io.BytesIO(contents))
         else:
             df = pd.read_excel(io.BytesIO(contents))
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error parsing file: {str(e)}",
+            status_code=400, detail=f"Error parsing file: {str(e)}"
         )
-
-    # Normalize column headers
-    df.columns = [str(col).strip() for col in df.columns]
 
     records_added = 0
     for _, row in df.iterrows():
-        text_val = str(row.get("text", "")).strip() if pd.notna(row.get("text")) else ""
+        text_val = str(row.get("text", row.get("complaint", ""))).strip()
         if not text_val:
             continue
 
         location_val = str(row.get("location", "")).strip() if pd.notna(row.get("location")) else "Unknown"
 
-        # Read category and priority if present
         raw_category = str(row.get("category", "")).strip() if pd.notna(row.get("category")) else ""
         try:
             raw_priority = int(row.get("priority_score", 0)) if pd.notna(row.get("priority_score")) else 0
         except (ValueError, TypeError):
             raw_priority = 0
 
-        # Auto-classify and score with ML if missing
         if not raw_category or raw_category == "Uncategorized" or raw_priority == 0:
             ml_pred = analyze_grievance(text_val)
             category_val = raw_category if (raw_category and raw_category != "Uncategorized") else ml_pred.get("category", "General")
@@ -205,5 +195,8 @@ async def upload_file(
         records_added += 1
 
     db.commit()
-
     return {"message": "Success", "records_added": records_added}
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
