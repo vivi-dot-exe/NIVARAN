@@ -6,6 +6,7 @@ import { Header } from './components/common/Header';
 import { ContactUsModal } from './components/common/ContactUsModal';
 import { FaqsModal } from './components/common/FaqsModal';
 import { SiteMapModal } from './components/common/SiteMapModal';
+import { SignInModal } from './components/common/SignInModal';
 import { GrievanceForm } from './components/citizen/GrievanceForm';
 import { CitizenTracker } from './components/citizen/CitizenTracker';
 import { KpiCards } from './components/admin/KpiCards';
@@ -33,10 +34,14 @@ export function App() {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
 
-  // Modal dialog states for Header utility links
+  // User Auth State
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(null);
+
+  // Modal dialog states
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isFaqsOpen, setIsFaqsOpen] = useState(false);
   const [isSiteMapOpen, setIsSiteMapOpen] = useState(false);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
 
   // Admin filter states
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
@@ -135,7 +140,7 @@ export function App() {
       isDarkMode ? 'bg-slate-955 text-slate-100' : 'bg-[#F4F6F9] text-slate-900'
     }`}>
       
-      {/* Header Navigation with Real-time Multilingual State */}
+      {/* Header Navigation with Real-time Multilingual State & Auth */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -149,6 +154,9 @@ export function App() {
         onOpenFaqs={() => setIsFaqsOpen(true)}
         onOpenSiteMap={() => setIsSiteMapOpen(true)}
         onGoHome={handleGoHome}
+        onOpenSignIn={() => setIsSignInOpen(true)}
+        currentUser={currentUser}
+        onSignOut={() => setCurrentUser(null)}
       />
 
       {/* Main Page Container */}
@@ -298,6 +306,17 @@ export function App() {
         onNavigateTab={(tab) => {
           setActiveTab(tab);
           window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+
+      {/* Sign In SSO Portal Modal */}
+      <SignInModal
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+        isDarkMode={isDarkMode}
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          setActiveTab('admin');
         }}
       />
 

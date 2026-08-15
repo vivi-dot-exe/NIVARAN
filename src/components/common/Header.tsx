@@ -15,7 +15,9 @@ import {
   HelpCircle,
   PhoneCall,
   FileText,
-  Server
+  Server,
+  User,
+  LogOut
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -31,6 +33,9 @@ interface HeaderProps {
   onOpenFaqs: () => void;
   onOpenSiteMap: () => void;
   onGoHome: () => void;
+  onOpenSignIn: () => void;
+  currentUser: { name: string; role: string; email: string } | null;
+  onSignOut: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -45,7 +50,10 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenContactUs,
   onOpenFaqs,
   onOpenSiteMap,
-  onGoHome
+  onGoHome,
+  onOpenSignIn,
+  currentUser,
+  onSignOut
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
@@ -213,7 +221,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </nav>
 
-          {/* Right Action Menu (Language selector, Theme Toggle Button, Sign in) */}
+          {/* Right Action Menu (Language selector, Theme Toggle Button, Sign in / Profile) */}
           <div className="flex items-center space-x-3 text-xs">
             {/* Live Monitoring Badge */}
             <div className={`hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
@@ -265,11 +273,28 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Official Sign In Button (Amber Yellow) */}
-            <button className="px-4 py-1.5 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow-sm flex items-center space-x-1">
-              <span>{t.signIn}</span>
-              <span>&rarr;</span>
-            </button>
+            {/* Official Sign In / Profile Pill */}
+            {currentUser ? (
+              <div className="flex items-center space-x-2 bg-[#5C082A] px-3 py-1 rounded border border-amber-400/50 text-amber-300">
+                <User className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-extrabold truncate max-w-[130px]">{currentUser.name}</span>
+                <button
+                  onClick={onSignOut}
+                  className="p-1 rounded hover:bg-black/30 text-rose-300 transition"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onOpenSignIn}
+                className="px-4 py-1.5 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow-sm flex items-center space-x-1 cursor-pointer"
+              >
+                <span>{t.signIn}</span>
+                <span>&rarr;</span>
+              </button>
+            )}
           </div>
 
         </div>
