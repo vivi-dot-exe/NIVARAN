@@ -3,6 +3,9 @@ import type { Grievance } from './types/grievance';
 import type { Language } from './utils/translations';
 import { INITIAL_GRIEVANCES } from './mockData/grievances';
 import { Header } from './components/common/Header';
+import { ContactUsModal } from './components/common/ContactUsModal';
+import { FaqsModal } from './components/common/FaqsModal';
+import { SiteMapModal } from './components/common/SiteMapModal';
 import { GrievanceForm } from './components/citizen/GrievanceForm';
 import { CitizenTracker } from './components/citizen/CitizenTracker';
 import { KpiCards } from './components/admin/KpiCards';
@@ -25,12 +28,15 @@ export function App() {
   const [citizenSubTab, setCitizenSubTab] = useState<'form' | 'tracker'>('form');
   const [trackingTicketId, setTrackingTicketId] = useState<string>('G-1001');
   
-  // REAL-TIME MULTILINGUAL LANGUAGE STATE ('en' | 'hi' | 'hinglish')
+  // Real-time Multilingual Language State
   const [currentLanguage, setCurrentLanguage] = useState<Language>('hi');
-
-  // DEFAULT TO DARK GOVTECH SLATE MODE
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
+
+  // Modal dialog states for Header utility links
+  const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isFaqsOpen, setIsFaqsOpen] = useState(false);
+  const [isSiteMapOpen, setIsSiteMapOpen] = useState(false);
 
   // Admin filter states
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
@@ -118,6 +124,12 @@ export function App() {
     setCitizenSubTab('tracker');
   };
 
+  const handleGoHome = () => {
+    setActiveTab('citizen');
+    setCitizenSubTab('form');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
       isDarkMode ? 'bg-slate-955 text-slate-100' : 'bg-[#F4F6F9] text-slate-900'
@@ -133,6 +145,10 @@ export function App() {
         isBackendConnected={isBackendConnected}
         currentLanguage={currentLanguage}
         onLanguageChange={setCurrentLanguage}
+        onOpenContactUs={() => setIsContactOpen(true)}
+        onOpenFaqs={() => setIsFaqsOpen(true)}
+        onOpenSiteMap={() => setIsSiteMapOpen(true)}
+        onGoHome={handleGoHome}
       />
 
       {/* Main Page Container */}
@@ -258,6 +274,31 @@ export function App() {
         onClose={() => setActiveActionGrievance(null)}
         onUpdate={handleUpdateGrievance}
         isDarkMode={isDarkMode}
+      />
+
+      {/* Contact Us Modal */}
+      <ContactUsModal
+        isOpen={isContactOpen}
+        onClose={() => setIsContactOpen(false)}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* FAQs / Help Desk Modal */}
+      <FaqsModal
+        isOpen={isFaqsOpen}
+        onClose={() => setIsFaqsOpen(false)}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Site Map Modal */}
+      <SiteMapModal
+        isOpen={isSiteMapOpen}
+        onClose={() => setIsSiteMapOpen(false)}
+        isDarkMode={isDarkMode}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       />
 
       {/* Official Government Footer */}

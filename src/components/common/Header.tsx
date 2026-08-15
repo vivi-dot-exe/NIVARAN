@@ -27,6 +27,10 @@ interface HeaderProps {
   isBackendConnected?: boolean;
   currentLanguage: Language;
   onLanguageChange: (lang: Language) => void;
+  onOpenContactUs: () => void;
+  onOpenFaqs: () => void;
+  onOpenSiteMap: () => void;
+  onGoHome: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -37,7 +41,11 @@ export const Header: React.FC<HeaderProps> = ({
   breachedCount,
   isBackendConnected = false,
   currentLanguage,
-  onLanguageChange
+  onLanguageChange,
+  onOpenContactUs,
+  onOpenFaqs,
+  onOpenSiteMap,
+  onGoHome
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
@@ -63,25 +71,44 @@ export const Header: React.FC<HeaderProps> = ({
 
           <span>|</span>
 
-          <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
+          {/* Interactive Utility Header Buttons */}
+          <button
+            onClick={onGoHome}
+            className="flex items-center space-x-1 hover:text-amber-300 cursor-pointer transition font-bold"
+          >
             <Home className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
             <span>{t.home}</span>
-          </span>
+          </button>
+
           <span>|</span>
-          <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
+
+          <button
+            onClick={onOpenContactUs}
+            className="flex items-center space-x-1 hover:text-amber-300 cursor-pointer transition font-bold"
+          >
             <PhoneCall className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
             <span>{t.contactUs}</span>
-          </span>
+          </button>
+
           <span>|</span>
-          <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
+
+          <button
+            onClick={onOpenFaqs}
+            className="flex items-center space-x-1 hover:text-amber-300 cursor-pointer transition font-bold"
+          >
             <HelpCircle className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
             <span>{t.faqs}</span>
-          </span>
+          </button>
+
           <span>|</span>
-          <span className="flex items-center space-x-1 hover:text-white cursor-pointer transition">
+
+          <button
+            onClick={onOpenSiteMap}
+            className="flex items-center space-x-1 hover:text-amber-300 cursor-pointer transition font-bold"
+          >
             <FileText className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
             <span>{t.siteMap}</span>
-          </span>
+          </button>
         </div>
       </div>
 
