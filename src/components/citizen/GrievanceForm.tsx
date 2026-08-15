@@ -68,13 +68,57 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
     setSubmittedTicket(null);
   };
 
-  // Voice Assistant speech-to-text simulator
+  // Voice Assistant speech-to-text with Web Speech API & fallback
   const triggerVoiceAssistant = () => {
+    // Check for native browser SpeechRecognition API
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognitionAPI) {
+      try {
+        const recognition = new SpeechRecognitionAPI();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang =
+          currentLanguage === 'hi' ? 'hi-IN' : currentLanguage === 'mr' ? 'mr-IN' : 'en-IN';
+
+        setIsListening(true);
+        recognition.start();
+
+        recognition.onresult = (event: any) => {
+          const transcript = Array.from(event.results)
+            .map((result: any) => result[0].transcript)
+            .join('');
+          if (transcript) {
+            setComplaintText(transcript);
+          }
+        };
+
+        recognition.onerror = (err: any) => {
+          console.warn('Microphone permission / Speech recognition fallback:', err);
+          fallbackVoiceDictation();
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        return;
+      } catch (e) {
+        console.warn('SpeechRecognition error:', e);
+      }
+    }
+
+    fallbackVoiceDictation();
+  };
+
+  const fallbackVoiceDictation = () => {
     setIsListening(true);
     setTimeout(() => {
       setComplaintText(
         currentLanguage === 'hi'
           ? 'वार्ड 4 में 3 दिन से पेयजल आपूर्ति बंद है और सड़क पर पाइप फटने से पानी बह रहा है।'
+          : currentLanguage === 'mr'
+          ? 'वॉर्ड ४ मध्ये ३ दिवसांपासून पाण्याची पाइपलाइन फुटली आहे आणि पिण्याच्या पाण्याचा पुरवठा बंद आहे.'
           : 'Ward 4 me 3 din se drinking water supply band hai aur sadak par pipe phat ke paani beh raha hai.'
       );
       setSelectedWard('Ward 4 - Andheri West');
