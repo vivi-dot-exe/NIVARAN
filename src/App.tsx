@@ -262,6 +262,7 @@ export function App() {
                 grievances={grievances}
                 initialTicketId={trackingTicketId}
                 isDarkMode={isDarkMode}
+                currentLanguage={currentLanguage}
               />
             )}
           </div>
