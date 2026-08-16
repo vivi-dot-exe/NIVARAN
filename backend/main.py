@@ -1,4 +1,5 @@
 import io
+import os
 from datetime import datetime
 from typing import List, Optional
 import uuid
@@ -15,12 +16,12 @@ from database import Base, engine, get_db
 import models
 from ml_engine import analyze_grievance, find_semantic_duplicate, run_batch_clustering
 
-# Initialize SQLite database tables
+# Initialize database tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="NIVARAN Grievance Ticketing System with BERTopic AI Engine")
+app = FastAPI(title="NIVARAN Civic Grievance Redressal Microservice")
 
-# Enable CORS for React frontend
+# Enable CORS for frontend applications
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -50,6 +51,15 @@ class TicketUpdateStatus(BaseModel):
 
 class AnalyzeRequest(BaseModel):
     text: str
+
+
+class DuplicateCheckRequest(BaseModel):
+    new_text: str
+    existing_texts: List[str]
+
+
+class ClusterRequest(BaseModel):
+    texts: List[str]
 
 
 class TicketResponse(BaseModel):
@@ -140,6 +150,16 @@ def analyze_text(req: AnalyzeRequest):
     return analyze_grievance(req.text)
 
 
+@app.post("/api/duplicates")
+def check_duplicates(req: DuplicateCheckRequest):
+    return find_semantic_duplicate(req.new_text, req.existing_texts)
+
+
+@app.post("/api/clusters")
+def cluster_grievances(req: ClusterRequest):
+    return run_batch_clustering(req.texts)
+
+
 @app.post("/api/upload-file")
 async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not (file.filename.endswith(".csv") or file.filename.endswith(".xlsx")):
@@ -199,4 +219,5 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

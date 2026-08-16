@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# 1. Read the Supabase/Neon PostgreSQL URL from the environment variable;
+# 1. Read the Supabase/Neon/Render PostgreSQL URL from the environment variable;
 #    fall back to local SQLite if running on your machine without cloud variables.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./jansetu.db")
 
@@ -15,13 +15,19 @@ if DATABASE_URL.startswith("postgres://"):
 # 3. SQLite requires `check_same_thread: False`; PostgreSQL will throw an error if passed.
 connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
 
-# 4. Create Engine & Sessionmaker (Identical signatures used across main.py and models.py)
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+# 4. Create Engine & Sessionmaker
+engine_kwargs = {"connect_args": connect_args}
+if "sqlite" not in DATABASE_URL:
+    engine_kwargs["pool_pre_ping"] = True
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 5. Base model declaration
 Base = declarative_base()
+
 def get_db():
+    """Dependency for yielding database sessions safely."""
     db = SessionLocal()
     try:
         yield db

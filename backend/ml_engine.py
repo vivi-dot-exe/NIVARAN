@@ -1,156 +1,123 @@
-from typing import List, Dict, Optional
-import re
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-try:
-    from sentence_transformers import SentenceTransformer, util
-    from bertopic import BERTopic
-    import numpy as np
-    HAS_ML = True
-    embedder = SentenceTransformer("all-MiniLM-L6-v2")
-except Exception as e:
-    HAS_ML = False
-    print("Running backend in lightweight rule-based ML triage mode:", e)
+_model = None
 
-# Canonical department anchors
-DEPARTMENT_ANCHORS = {
-    "Public Health & Healthcare": "no working hospitals hospital clinic doctor medical beds dengue malaria ambulance emergency healthcare non-functional doctor missing",
-    "Water Supply": "broken water pipe pipeline leakage contaminated tap water sewage low pressure paani pani",
-    "Roads & Infrastructure": "huge pothole road broken open manhole collapsed footpath damaged divider asphalt sadak gadda",
-    "Sanitation & Garbage": "garbage dumping waste overflow trash bin cleaning dead animal smell stench kachra",
-    "Electricity & Power": "sparking wire hanging electrical cable power outage transformer blast street light off bijli batti"
-}
-
-def analyze_grievance(text: str) -> Dict:
-    """
-    Zero-shot classifies category and calculates dynamic urgency score (0-100).
-    """
-    if HAS_ML:
+def get_model():
+    """Lazy-load SentenceTransformer to keep initial boot RAM under 150MB."""
+    global _model
+    if _model is None:
         try:
-            from sentence_transformers import util
-            import numpy as np
-
-            DEPT_NAMES = list(DEPARTMENT_ANCHORS.keys())
-            DEPT_EMBEDDINGS = embedder.encode(list(DEPARTMENT_ANCHORS.values()), convert_to_tensor=True)
-            
-            URGENCY_ANCHORS = [
-                "major accident imminent life threatening critical risk massive fire hazard explosion electrocution risk no working hospitals emergency",
-                "severe blockage daily life disrupted road impassable dirty contaminated drinking water spreading illness non-functional medical clinic",
-                "minor inconvenience cosmetic issue non urgent routine maintenance follow up"
-            ]
-            URGENCY_WEIGHTS = [100, 65, 20]
-            URGENCY_EMBEDDINGS = embedder.encode(URGENCY_ANCHORS, convert_to_tensor=True)
-
-            text_emb = embedder.encode(text, convert_to_tensor=True)
-            dept_sims = util.cos_sim(text_emb, DEPT_EMBEDDINGS)[0]
-            best_dept_idx = int(dept_sims.argmax())
-            predicted_category = DEPT_NAMES[best_dept_idx]
-
-            urgency_sims = util.cos_sim(text_emb, URGENCY_EMBEDDINGS)[0].cpu().numpy()
-            exp_sims = np.exp(urgency_sims * 3)
-            weights = exp_sims / np.sum(exp_sims)
-            calculated_priority = int(np.dot(weights, URGENCY_WEIGHTS))
-            calculated_priority = max(10, min(100, calculated_priority))
-
-            return {
-                "category": predicted_category,
-                "priority_score": calculated_priority,
-                "confidence": round(float(dept_sims[best_dept_idx]), 3)
-            }
+            from sentence_transformers import SentenceTransformer
+            _model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
         except Exception:
-            pass
+            _model = "TFIDF_FALLBACK"
+    return _model
 
-    # Lightweight Fallback Classifier
-    lower = text.toLowerCase() if hasattr(text, 'toLowerCase') else text.lower()
-    best_category = "Sanitation & Garbage"
-    max_score = 0
+CATEGORIES = [
+    "Water Supply",
+    "Roads & Potholes",
+    "Sanitation & Garbage",
+    "Electricity & Power",
+    "Public Health & Safety"
+]
 
-    for dept, keywords in DEPARTMENT_ANCHORS.items():
-        kw_list = keywords.split()
-        score = sum(1 for kw in kw_list if kw in lower)
-        if score > max_score:
-            max_score = score
-            best_category = dept
+URGENCY_KEYWORDS = [
+    "danger", "emergency", "spark", "accident", "broken", "overflow", 
+    "severe", "critical", "urgent", "immediate", "hazard", "burst", "life threatening"
+]
 
-    priority_score = 50
-    if any(w in lower for w in ['emergency', 'critical', 'blast', 'hospital', 'blackout', 'phat', 'leak']):
-        priority_score = 90
-    elif any(w in lower for w in ['urgent', 'pothole', 'overflow', 'delay']):
-        priority_score = 75
+def analyze_grievance(text: str) -> dict:
+    """Classifies category and computes priority score under low RAM constraints."""
+    if not text or not str(text).strip():
+        return {"category": "General", "priority_score": 50}
+
+    text_clean = str(text).strip()
+    model = get_model()
+
+    # Transformer semantic search
+    if model != "TFIDF_FALLBACK" and hasattr(model, "encode"):
+        try:
+            embeddings = model.encode([text_clean] + CATEGORIES, convert_to_tensor=False)
+            text_vec = embeddings[0].reshape(1, -1)
+            cat_vecs = embeddings[1:]
+            sims = cosine_similarity(text_vec, cat_vecs)[0]
+            best_cat = CATEGORIES[int(np.argmax(sims))]
+        except Exception:
+            best_cat = "General"
+    else:
+        # Fast TF-IDF Fallback
+        try:
+            vectorizer = TfidfVectorizer().fit(CATEGORIES + [text_clean])
+            text_vec = vectorizer.transform([text_clean])
+            cat_vecs = vectorizer.transform(CATEGORIES)
+            sims = cosine_similarity(text_vec, cat_vecs)[0]
+            best_cat = CATEGORIES[int(np.argmax(sims))] if max(sims) > 0 else "General"
+        except Exception:
+            best_cat = "General"
+
+    # Calculate Priority Score (0-100) based on urgency triggers
+    score = 45
+    lower_text = text_clean.lower()
+    for kw in URGENCY_KEYWORDS:
+        if kw in lower_text:
+            score += 15
+    score = min(98, max(20, score))
 
     return {
-        "category": best_category,
-        "priority_score": priority_score,
-        "confidence": 0.85 if max_score > 0 else 0.60
+        "category": str(best_cat),
+        "priority_score": int(score)
     }
 
+def find_semantic_duplicate(new_text: str, existing_texts: list) -> dict:
+    """Finds duplicate complaints using TF-IDF cosine similarity."""
+    if not existing_texts or not new_text or not str(new_text).strip():
+        return {"is_duplicate": False, "match_id": None, "similarity": 0.0}
+    
+    clean_existing = [str(t).strip() for t in existing_texts if str(t).strip()]
+    if not clean_existing:
+        return {"is_duplicate": False, "match_id": None, "similarity": 0.0}
 
-def find_semantic_duplicate(
-    new_text: str, 
-    existing_texts: List[str], 
-    threshold: float = 0.75
-) -> Optional[int]:
-    """
-    Returns the index of the matching duplicate complaint, or None if unique.
-    """
-    if not existing_texts:
-        return None
+    try:
+        clean_new = str(new_text).strip()
+        vectorizer = TfidfVectorizer().fit([clean_new] + clean_existing)
+        matrix = vectorizer.transform([clean_new] + clean_existing)
+        sims = cosine_similarity(matrix[0:1], matrix[1:])[0]
+        max_sim = float(np.max(sims))
+        
+        return {
+            "is_duplicate": bool(max_sim > 0.72),
+            "match_id": int(np.argmax(sims)) if max_sim > 0.72 else None,
+            "similarity": round(max_sim, 2)
+        }
+    except Exception:
+        return {"is_duplicate": False, "match_id": None, "similarity": 0.0}
 
-    if HAS_ML:
-        try:
-            from sentence_transformers import util
-            new_emb = embedder.encode(new_text, convert_to_tensor=True)
-            existing_embs = embedder.encode(existing_texts, convert_to_tensor=True)
-            scores = util.cos_sim(new_emb, existing_embs)[0]
-            best_idx = int(scores.argmax())
-            if float(scores[best_idx]) >= threshold:
-                return best_idx
-            return None
-        except Exception:
-            pass
-
-    # Fallback string matching
-    new_words = set(re.findall(r'\w+', new_text.lower()))
-    for idx, text in enumerate(existing_texts):
-        words = set(re.findall(r'\w+', text.lower()))
-        common = new_words.intersection(words)
-        if len(common) >= 3:
-            return idx
-    return None
-
-
-def run_batch_clustering(texts: List[str], min_topic_size: int = 3) -> Dict:
-    """
-    Runs lightweight BERTopic over a batch of complaints to detect emerging trends.
-    """
-    if len(texts) < min_topic_size:
-        return {"topics": {}, "summary": "Dataset too small for clustering"}
-
-    if HAS_ML:
-        try:
-            topic_model = BERTopic(
-                embedding_model=embedder,
-                calculate_probabilities=False,
-                min_topic_size=min_topic_size,
-                verbose=False
-            )
-            topics, _ = topic_model.fit_transform(texts)
-            topic_info = topic_model.get_topic_info()
-            clusters = []
-            for _, row in topic_info.iterrows():
-                if row["Topic"] != -1:
-                    clusters.append({
-                        "topic_id": int(row["Topic"]),
-                        "count": int(row["Count"]),
-                        "name": row["Name"],
-                        "keywords": [word for word, _ in topic_model.get_topic(row["Topic"])[:5]]
-                    })
-            return {"clusters": clusters, "total_clustered": len(texts)}
-        except Exception:
-            pass
-
-    return {
-        "clusters": [
-            {"topic_id": 1, "count": len(texts), "name": "General Civic Complaints", "keywords": ["water", "road", "garbage"]}
-        ],
-        "total_clustered": len(texts)
-    }
+def run_batch_clustering(texts: list) -> list:
+    """Clustering using Scikit-learn (RAM usage < 30MB vs BERTopic > 600MB)."""
+    clean_texts = [str(t).strip() for t in texts if str(t).strip()]
+    if not clean_texts or len(clean_texts) < 3:
+        return [{"topic_id": 0, "name": "General Grievances", "count": len(clean_texts)}]
+    
+    try:
+        vectorizer = TfidfVectorizer(max_features=100, stop_words='english')
+        X = vectorizer.fit_transform(clean_texts)
+        
+        from sklearn.cluster import MiniBatchKMeans
+        n_clusters = min(5, len(clean_texts))
+        kmeans = MiniBatchKMeans(n_clusters=n_clusters, random_state=42, batch_size=20)
+        labels = kmeans.fit_predict(X)
+        
+        clusters = []
+        for i in range(n_clusters):
+            count = int(np.sum(labels == i))
+            if count > 0:
+                clusters.append({
+                    "topic_id": i,
+                    "name": f"Topic Group {i+1}",
+                    "count": count
+                })
+        return clusters
+    except Exception:
+        return [{"topic_id": 0, "name": "General Grievances", "count": len(clean_texts)}]
