@@ -139,9 +139,11 @@ The Python microservice runs on port 8000 and exposes RESTful endpoints:
 ## Local Development & Setup
 
 ### Prerequisites
-- Node.js (v18.0.0 or higher)
-- Python (v3.10 or higher)
-- Git
+* **Node.js** (`v18.0.0` or higher)
+* **Python** (`v3.10` or higher)
+* **Git**
+
+---
 
 ### 1. Frontend Setup
 ```bash
@@ -157,26 +159,23 @@ npm run dev
 ```
 The frontend application will run locally at `http://localhost:5173/`.
 
-### 2. Backend Setup (Optional Python Microservice)
-```bash
-# Navigate to backend directory
+# Navigate to the backend directory
 cd backend
 
-# Install Python requirements
+# Install Python dependencies
 pip install -r requirements.txt
 
-# Launch FastAPI server
-python main.py
-```
-The FastAPI microservice will run locally at `http://localhost:8000/`.
-
+# Launch FastAPI server with auto-reload
+uvicorn main:app --reload
+The FastAPI server will run locally at `http://localhost:8000/`.
+(Interactive Swagger docs available at http://127.0.0.1:8000/docs).
 ---
 
 ## Data Persistence & State Management
 
 The application maintains state persistence across browser sessions:
 - Browser `localStorage` persists created tickets, upvotes, and status changes locally.
-- When the FastAPI microservice is online, tickets synchronize with the backend SQLite database (`backend/nivaran.db`).
+- When the FastAPI server is online, tickets synchronize with the backend SQLite database (`backend/nivaran.db`).
 
 ---
 
