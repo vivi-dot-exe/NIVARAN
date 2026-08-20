@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface GrievanceFormProps {
   existingGrievances: Grievance[];
+  existingCivicIssues?: import('../../types/grievance').CivicIssue[];
   onAddGrievance: (grievance: Grievance) => void;
   onUpvoteGrievance: (id: string) => void;
   isDarkMode: boolean;
@@ -31,6 +32,7 @@ interface GrievanceFormProps {
 
 export const GrievanceForm: React.FC<GrievanceFormProps> = ({
   existingGrievances,
+  existingCivicIssues = [],
   onAddGrievance,
   onUpvoteGrievance,
   isDarkMode,
@@ -108,7 +110,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       if (complaintText.trim().length > 3) {
-        const result = performAiTriage(complaintText, selectedWard, existingGrievances);
+        const result = performAiTriage(complaintText, selectedWard, existingGrievances, existingCivicIssues);
         setTriage(result);
       } else {
         setTriage(null);
@@ -116,7 +118,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [complaintText, selectedWard, existingGrievances]);
+  }, [complaintText, selectedWard, existingGrievances, existingCivicIssues]);
 
   // Quick preset sample fillers
   const fillPreset = (text: string, ward: string) => {
@@ -432,6 +434,47 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                 }`}
               />
             </div>
+
+            {/* EXISTING CIVIC ISSUE FOUND BANNER */}
+            <AnimatePresence>
+              {triage?.matchedCivicIssue && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className={`p-4 rounded-xl border space-y-3 ${
+                    isDarkMode ? 'bg-blue-950/70 border-blue-500/40 text-blue-100' : 'bg-blue-50 border-blue-300 text-blue-900'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <Building2 className="w-6 h-6 text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="flex items-center space-x-2 flex-wrap gap-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white">
+                          CIVIC ISSUE {triage.matchedCivicIssue.id}
+                        </span>
+                        <span className="text-xs font-bold text-amber-400">
+                          Priority: {triage.matchedCivicIssue.priority_level} ({triage.matchedCivicIssue.priority_score}/100)
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-extrabold text-white mt-1">
+                        {triage.matchedCivicIssue.issue_title}
+                      </h4>
+                      <p className="text-xs text-blue-200 mt-1">
+                        Other citizens have already reported this underlying civic problem in <strong>{selectedWard}</strong>.
+                      </p>
+                      <div className="flex items-center space-x-4 mt-2 text-xs font-semibold text-blue-300">
+                        <span>👥 {triage.matchedCivicIssue.affected_citizen_count} citizens affected</span>
+                        <span>📋 {triage.matchedCivicIssue.report_count} reports logged</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-blue-900/60 border border-blue-500/30 text-xs text-blue-200">
+                    💡 <strong>Your report will be automatically attached to this Civic Issue</strong> to amplify community urgency for government action.
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* DUPLICATE ALERT BANNER */}
             <AnimatePresence>

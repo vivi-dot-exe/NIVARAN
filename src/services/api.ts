@@ -151,7 +151,7 @@ export async function analyzeTextApi(text: string): Promise<AnalyzeResponse> {
   return res.json();
 }
 
-export async function uploadFileApi(file: File): Promise<{ message: string; records_added: number }> {
+export async function uploadFileApi(file: File): Promise<{ message: string; records_added: number; civic_issues_count?: number }> {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -162,3 +162,24 @@ export async function uploadFileApi(file: File): Promise<{ message: string; reco
   if (!res.ok) throw new Error('Failed to upload file to FastAPI backend');
   return res.json();
 }
+
+export async function fetchCivicIssuesApi(): Promise<import('../types/grievance').CivicIssue[]> {
+  const res = await fetch(`${API_BASE_URL}/api/civic-issues`);
+  if (!res.ok) throw new Error('Failed to fetch civic issues from FastAPI backend');
+  return res.json();
+}
+
+export async function updateCivicIssueStatusApi(
+  issueId: string,
+  status: string,
+  responsibleAuthority?: string
+): Promise<import('../types/grievance').CivicIssue> {
+  const res = await fetch(`${API_BASE_URL}/api/civic-issues/${issueId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, responsible_authority: responsibleAuthority })
+  });
+  if (!res.ok) throw new Error('Failed to update civic issue in FastAPI backend');
+  return res.json();
+}
+

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import type { Grievance } from './types/grievance';
+import type { Grievance, CivicIssue } from './types/grievance';
 import type { Language } from './utils/translations';
 import { TRANSLATIONS } from './utils/translations';
-import { INITIAL_GRIEVANCES } from './mockData/grievances';
+import { INITIAL_GRIEVANCES, INITIAL_CIVIC_ISSUES } from './mockData/grievances';
 import { Header } from './components/common/Header';
 import { ContactUsModal } from './components/common/ContactUsModal';
 import { FaqsModal } from './components/common/FaqsModal';
@@ -20,12 +20,15 @@ import { BatchIngestionDemo } from './components/demo/BatchIngestionDemo';
 import {
   checkBackendHealth,
   fetchTicketsApi,
+  fetchCivicIssuesApi,
   createTicketApi,
-  updateTicketStatusApi
+  updateTicketStatusApi,
+  updateCivicIssueStatusApi
 } from './services/api';
 import { Search, FileText } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'nivaran_grievances_v2';
+const CIVIC_ISSUES_KEY = 'nivaran_civic_issues_v1';
 
 export function App() {
   // PERSISTENT LOCAL STORAGE INITIALIZATION
@@ -42,6 +45,21 @@ export function App() {
       console.warn('Could not parse saved grievances from localStorage:', e);
     }
     return INITIAL_GRIEVANCES;
+  });
+
+  const [civicIssues, setCivicIssues] = useState<CivicIssue[]>(() => {
+    try {
+      const saved = localStorage.getItem(CIVIC_ISSUES_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not parse saved civic issues from localStorage:', e);
+    }
+    return INITIAL_CIVIC_ISSUES;
   });
 
   // User Auth State (Null = Citizen View Mode) - PERSISTENT
@@ -115,6 +133,7 @@ export function App() {
   });
 
   const [activeActionGrievance, setActiveActionGrievance] = useState<Grievance | null>(null);
+  const [activeActionCivicIssue, setActiveActionCivicIssue] = useState<CivicIssue | null>(null);
 
   const isOfficerLoggedIn = Boolean(currentUser && (currentUser.role.includes('Nodal') || currentUser.role.includes('Officer') || currentUser.role.includes('Admin')));
 
@@ -127,72 +146,16 @@ export function App() {
     }
   }, [grievances]);
 
-  // PERSISTENCE EFFECTS FOR USER, TABS, LANGUAGE, DARK MODE & CLUSTER
+  // PERSIST TO LOCAL STORAGE WHENEVER CIVIC ISSUES UPDATE
   useEffect(() => {
     try {
-      if (currentUser) {
-        localStorage.setItem('nivaran_user', JSON.stringify(currentUser));
-      } else {
-        localStorage.removeItem('nivaran_user');
-      }
+      localStorage.setItem(CIVIC_ISSUES_KEY, JSON.stringify(civicIssues));
     } catch (e) {
-      console.warn('Failed to save user to localStorage:', e);
+      console.warn('Failed to save civic issues to localStorage:', e);
     }
-  }, [currentUser]);
+  }, [civicIssues]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('nivaran_active_tab', activeTab);
-    } catch (e) {
-      console.warn('Failed to save activeTab to localStorage:', e);
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('nivaran_citizen_subtab', citizenSubTab);
-    } catch (e) {
-      console.warn('Failed to save citizenSubTab to localStorage:', e);
-    }
-  }, [citizenSubTab]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('nivaran_tracking_ticket_id', trackingTicketId);
-    } catch (e) {
-      console.warn('Failed to save trackingTicketId to localStorage:', e);
-    }
-  }, [trackingTicketId]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('nivaran_language', currentLanguage);
-    } catch (e) {
-      console.warn('Failed to save language to localStorage:', e);
-    }
-  }, [currentLanguage]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('nivaran_dark_mode', String(isDarkMode));
-    } catch (e) {
-      console.warn('Failed to save dark mode to localStorage:', e);
-    }
-  }, [isDarkMode]);
-
-  useEffect(() => {
-    try {
-      if (selectedClusterId) {
-        localStorage.setItem('nivaran_selected_cluster', selectedClusterId);
-      } else {
-        localStorage.removeItem('nivaran_selected_cluster');
-      }
-    } catch (e) {
-      console.warn('Failed to save cluster filter to localStorage:', e);
-    }
-  }, [selectedClusterId]);
-
-  // Check backend health & sync DB tickets
+  // Check backend health & sync DB tickets & civic issues
   useEffect(() => {
     let isMounted = true;
     async function initBackendSync() {
@@ -221,6 +184,17 @@ export function App() {
                 } else {
                   prevMap.set(t.Complaint_ID, t);
                 }
+              });
+              return Array.from(prevMap.values());
+            });
+          }
+
+          const apiIssues = await fetchCivicIssuesApi();
+          if (apiIssues.length > 0 && isMounted) {
+            setCivicIssues((prev) => {
+              const prevMap = new Map(prev.map((item) => [item.id, item]));
+              apiIssues.forEach((iss) => {
+                prevMap.set(iss.id, iss);
               });
               return Array.from(prevMap.values());
             });
@@ -266,6 +240,9 @@ export function App() {
         setGrievances((prev) =>
           prev.map((g) => (g.Complaint_ID === newTicket.Complaint_ID ? savedApiTicket : g))
         );
+        // Refresh civic issues from backend after ticket creation
+        const updatedIssues = await fetchCivicIssuesApi();
+        if (updatedIssues.length > 0) setCivicIssues(updatedIssues);
       } catch (err) {
         console.warn('FastAPI ticket save fallback:', err);
       }
@@ -288,6 +265,29 @@ export function App() {
         await updateTicketStatusApi(updated.Complaint_ID, updated.Status);
       } catch (err) {
         console.warn('FastAPI status patch fallback:', err);
+      }
+    }
+  };
+
+  const handleUpdateCivicIssue = async (updatedIssue: CivicIssue) => {
+    setCivicIssues((prev) =>
+      prev.map((iss) => (iss.id === updatedIssue.id ? updatedIssue : iss))
+    );
+
+    // Cascade status update to all child tickets in state
+    setGrievances((prev) =>
+      prev.map((g) =>
+        g.civic_issue_id === updatedIssue.id || (g.Ward === updatedIssue.ward && g.Department === updatedIssue.category)
+          ? { ...g, Status: updatedIssue.status, Assigned_Officer: updatedIssue.responsible_authority }
+          : g
+      )
+    );
+
+    if (isBackendConnected) {
+      try {
+        await updateCivicIssueStatusApi(updatedIssue.id, updatedIssue.status, updatedIssue.responsible_authority);
+      } catch (err) {
+        console.warn('FastAPI civic issue status patch fallback:', err);
       }
     }
   };
@@ -381,6 +381,7 @@ export function App() {
             {citizenSubTab === 'form' ? (
               <GrievanceForm
                 existingGrievances={grievances}
+                existingCivicIssues={civicIssues}
                 onAddGrievance={handleAddGrievance}
                 onUpvoteGrievance={handleUpvoteGrievance}
                 isDarkMode={isDarkMode}
@@ -390,6 +391,7 @@ export function App() {
             ) : (
               <CitizenTracker
                 grievances={grievances}
+                civicIssues={civicIssues}
                 initialTicketId={trackingTicketId}
                 isDarkMode={isDarkMode}
                 currentLanguage={currentLanguage}
@@ -404,6 +406,7 @@ export function App() {
             {/* KPI Metric Summary Cards */}
             <KpiCards
               grievances={grievances}
+              civicIssues={civicIssues}
               isDarkMode={isDarkMode}
               currentLanguage={currentLanguage}
             />
@@ -434,8 +437,10 @@ export function App() {
             {/* Comprehensive Grievance Master Table */}
             <GrievanceTable
               grievances={grievances}
+              civicIssues={civicIssues}
               selectedClusterId={selectedClusterId}
               onSelectGrievance={setActiveActionGrievance}
+              onSelectCivicIssue={(issue) => setActiveActionCivicIssue(issue)}
               isDarkMode={isDarkMode}
               currentLanguage={currentLanguage}
             />
@@ -457,9 +462,14 @@ export function App() {
       {/* Action Drawer Modal */}
       <ActionDrawer
         grievance={activeActionGrievance}
-        isOpen={Boolean(activeActionGrievance)}
-        onClose={() => setActiveActionGrievance(null)}
+        civicIssue={activeActionCivicIssue}
+        isOpen={Boolean(activeActionGrievance || activeActionCivicIssue)}
+        onClose={() => {
+          setActiveActionGrievance(null);
+          setActiveActionCivicIssue(null);
+        }}
         onUpdate={handleUpdateGrievance}
+        onUpdateCivicIssue={handleUpdateCivicIssue}
         isDarkMode={isDarkMode}
       />
 

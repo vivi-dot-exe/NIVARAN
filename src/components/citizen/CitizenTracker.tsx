@@ -14,6 +14,7 @@ import {
 
 interface CitizenTrackerProps {
   grievances: Grievance[];
+  civicIssues?: import('../../types/grievance').CivicIssue[];
   initialTicketId?: string;
   isDarkMode: boolean;
   currentLanguage?: Language;
@@ -21,6 +22,7 @@ interface CitizenTrackerProps {
 
 export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
   grievances,
+  civicIssues = [],
   initialTicketId = 'G-1001',
   isDarkMode,
   currentLanguage = 'en'
@@ -39,6 +41,15 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
     const query = (localStorage.getItem('nivaran_tracking_ticket_id') || initialTicketId).trim().toLowerCase();
     return grievances.find((g) => g.Complaint_ID.toLowerCase() === query) || grievances[0] || null;
   });
+
+  // Find parent Civic Issue for active ticket
+  const parentIssue = activeTicket
+    ? civicIssues.find(
+        (iss) =>
+          iss.id === activeTicket.civic_issue_id ||
+          (iss.ward === activeTicket.Ward && iss.category === activeTicket.Department)
+      )
+    : null;
 
   // Sync active ticket when grievances or initialTicketId prop updates
   useEffect(() => {
@@ -185,10 +196,42 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
               </div>
 
               <div className="space-y-3 text-xs">
+                {/* PARENT CIVIC ISSUE CARD */}
+                {parentIssue && (
+                  <div className={`p-4 rounded-xl border space-y-2 ${
+                    isDarkMode ? 'bg-blue-950/60 border-blue-500/40 text-blue-100' : 'bg-blue-50 border-blue-300 text-blue-900'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white">
+                        PARENT CIVIC ISSUE #{parentIssue.id}
+                      </span>
+                      <span className="text-xs font-bold text-amber-400">
+                        Priority: {parentIssue.priority_level} ({parentIssue.priority_score}/100)
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-extrabold text-white">
+                      {parentIssue.issue_title}
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-1 font-semibold text-blue-200">
+                      <div className="p-2 rounded bg-blue-900/40 border border-blue-500/20">
+                        <span className="block text-[10px] text-blue-300">Affected Citizens</span>
+                        <strong className="text-white text-sm">👥 {parentIssue.affected_citizen_count} citizens</strong>
+                      </div>
+                      <div className="p-2 rounded bg-blue-900/40 border border-blue-500/20">
+                        <span className="block text-[10px] text-blue-300">Total Reports</span>
+                        <strong className="text-white text-sm">📋 {parentIssue.report_count} reports</strong>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-blue-300 italic pt-1">
+                      Your report <strong>#{activeTicket.Complaint_ID}</strong> is part of this overall civic problem.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <span className="text-slate-500 font-bold block mb-1">{t.originalText}</span>
                   <p className={`p-3 rounded-xl border leading-relaxed font-medium ${
-                    isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    isDarkMode ? 'bg-slate-955 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}>
                     "{activeTicket.Complaint}"
                   </p>

@@ -33,6 +33,36 @@ export interface Grievance {
   Assigned_Officer?: string;
   Cluster_X?: number; // BERTopic 2D embedding coordinate X
   Cluster_Y?: number; // BERTopic 2D embedding coordinate Y
+  civic_issue_id?: string; // Foreign key to parent CivicIssue
+}
+
+export interface CivicIssue {
+  id: string; // e.g. CI-1042
+  issue_title: string;
+  issue_description: string;
+  category: string;
+  subcategory: string;
+  ward: string;
+  latitude: number;
+  longitude: number;
+  status: GrievanceStatus;
+  created_at: string;
+  last_reported_at: string;
+  affected_citizen_count: number;
+  report_count: number;
+  duplicate_count: number;
+  priority_score: number;
+  priority_level: PriorityLevel;
+  severity_score: number;
+  urgency_score: number;
+  scope_score: number;
+  responsible_department: DepartmentType;
+  responsible_authority: string;
+  cluster_confidence: number;
+  resolved_at?: string | null;
+  tickets?: Grievance[];
+  growth_rate?: number;
+  is_emerging?: boolean;
 }
 
 export interface ClusterSummary {
@@ -58,5 +88,7 @@ export interface TriageResult {
   priorityScore: number;
   priority: PriorityLevel;
   duplicateMatch: Grievance | null;
+  matchedCivicIssue: CivicIssue | null;
   confidence: number;
 }
+

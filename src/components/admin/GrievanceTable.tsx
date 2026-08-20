@@ -15,20 +15,26 @@ import {
 
 interface GrievanceTableProps {
   grievances: Grievance[];
+  civicIssues?: import('../../types/grievance').CivicIssue[];
   selectedClusterId: string | null;
   onSelectGrievance: (grievance: Grievance) => void;
+  onSelectCivicIssue?: (issue: import('../../types/grievance').CivicIssue) => void;
   isDarkMode: boolean;
   currentLanguage?: Language;
 }
 
 export const GrievanceTable: React.FC<GrievanceTableProps> = ({
   grievances,
+  civicIssues = [],
   selectedClusterId,
   onSelectGrievance,
+  onSelectCivicIssue,
   isDarkMode,
   currentLanguage = 'en'
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
+
+  const [viewMode, setViewMode] = useState<'issues' | 'tickets'>('issues');
 
   const [searchTerm, setSearchTerm] = useState<string>(() => {
     try {
@@ -76,6 +82,24 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
     } catch {
       return false;
     }
+  });
+
+  // Filter Civic Issues
+  const filteredIssues = civicIssues.filter((iss) => {
+    if (selectedWard !== 'ALL' && iss.ward !== selectedWard) return false;
+    if (selectedDept !== 'ALL' && iss.category !== selectedDept && iss.responsible_department !== selectedDept) return false;
+    if (selectedPriority !== 'ALL' && iss.priority_level !== selectedPriority) return false;
+    if (selectedStatus !== 'ALL' && iss.status !== selectedStatus) return false;
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      return (
+        iss.id.toLowerCase().includes(q) ||
+        iss.issue_title.toLowerCase().includes(q) ||
+        iss.issue_description.toLowerCase().includes(q) ||
+        iss.ward.toLowerCase().includes(q)
+      );
+    }
+    return true;
   });
 
   // Save admin search term and filter states
@@ -210,6 +234,39 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
       isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-300 shadow-sm'
     } space-y-5`}>
       
+      {/* View Mode Toggle Strip */}
+      <div className={`p-1.5 rounded-xl border flex items-center space-x-2 ${
+        isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'
+      }`}>
+        <button
+          onClick={() => setViewMode('issues')}
+          className={`flex-1 py-2 px-4 rounded-lg font-extrabold text-xs transition flex items-center justify-center space-x-2 ${
+            viewMode === 'issues'
+              ? 'bg-[#1E3A8A] text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <span>🏙️ CIVIC ISSUES VIEW (PROBLEM-CENTRIC)</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/30 text-blue-200 font-mono font-black">
+            {filteredIssues.length} Active Issues
+          </span>
+        </button>
+
+        <button
+          onClick={() => setViewMode('tickets')}
+          className={`flex-1 py-2 px-4 rounded-lg font-extrabold text-xs transition flex items-center justify-center space-x-2 ${
+            viewMode === 'tickets'
+              ? 'bg-[#7A0C38] text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <span>📋 INDIVIDUAL REPORTS REGISTRY</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-500/30 text-rose-200 font-mono font-black">
+            {filteredData.length} Citizen Reports
+          </span>
+        </button>
+      </div>
+
       {/* Table Header & Toolbar */}
       <div className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-4 ${
         isDarkMode ? 'border-slate-800' : 'border-slate-200'
@@ -218,29 +275,33 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
           <h3 className={`font-extrabold text-base uppercase tracking-wide flex items-center space-x-2 ${
             isDarkMode ? 'text-white' : 'text-slate-900'
           }`}>
-            <span>{t.masterRegistry}</span>
+            <span>{viewMode === 'issues' ? '🏙️ Master Civic Issues Operational Console' : t.masterRegistry}</span>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#7A0C38] text-white">
-              {filteredData.length} {t.ticketsFiltered}
+              {viewMode === 'issues' ? `${filteredIssues.length} Issues` : `${filteredData.length} ${t.ticketsFiltered}`}
             </span>
           </h3>
           <p className={`text-xs mt-0.5 font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            {t.masterRegistrySub}
+            {viewMode === 'issues' 
+              ? 'Aggregated real-world civic problems ranked by community impact, affected citizen volume, and urgency.'
+              : t.masterRegistrySub}
           </p>
         </div>
 
         {/* Action Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition flex items-center space-x-1.5 ${
-              showDuplicatesOnly
-                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
-                : isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>{t.filterDuplicates}</span>
-          </button>
+          {viewMode === 'tickets' && (
+            <button
+              onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition flex items-center space-x-1.5 ${
+                showDuplicatesOnly
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
+                  : isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>{t.filterDuplicates}</span>
+            </button>
+          )}
 
           <button
             onClick={handleExportCSV}
@@ -349,18 +410,110 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
       <div className={`overflow-x-auto rounded-xl border ${
         isDarkMode ? 'border-slate-800' : 'border-slate-300'
       }`}>
-        <table className="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr className="bg-[#7A0C38] text-white border-b border-[#961247]">
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colId}</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colText}</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colDept}</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colPriority}</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colSla}</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colStatus}</th>
-              <th className="p-3.5 font-extrabold uppercase tracking-wider text-right">{t.colAction}</th>
-            </tr>
-          </thead>
+        {viewMode === 'issues' ? (
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-[#1E3A8A] text-white border-b border-blue-900">
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Issue ID</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Civic Issue Title & Description</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Ward & Dept</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Community Impact</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Priority Level</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Status</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y font-sans ${isDarkMode ? 'divide-slate-800' : 'divide-slate-200'}`}>
+              {filteredIssues.length > 0 ? (
+                filteredIssues.map((issue, idx) => (
+                  <tr
+                    key={issue.id}
+                    className={`transition ${
+                      issue.priority_level === 'Critical'
+                        ? (isDarkMode ? 'bg-rose-950/25' : 'bg-rose-50/80')
+                        : (idx % 2 === 0 ? (isDarkMode ? 'bg-slate-900' : 'bg-white') : (isDarkMode ? 'bg-slate-900/60' : 'bg-slate-50/80'))
+                    } hover:bg-blue-950/20`}
+                  >
+                    <td className="p-3.5 font-mono font-extrabold text-blue-400 whitespace-nowrap">
+                      <div className="flex flex-col space-y-1">
+                        <span>#{issue.id}</span>
+                        {issue.is_emerging && (
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 w-fit font-bold animate-pulse">
+                            +{issue.growth_rate}% Surge ⚠️
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3.5 max-w-sm">
+                      <div className="space-y-1">
+                        <h4 className="font-extrabold text-white text-xs">
+                          {issue.issue_title}
+                        </h4>
+                        <p className="line-clamp-2 leading-relaxed text-slate-300 text-[11px]">
+                          "{issue.issue_description}"
+                        </p>
+                      </div>
+                    </td>
+                    <td className="p-3.5 whitespace-nowrap">
+                      <div className="space-y-1">
+                        <span className="font-extrabold block text-blue-300">{issue.category}</span>
+                        <span className="text-[11px] font-medium block text-slate-400">{issue.ward}</span>
+                      </div>
+                    </td>
+                    <td className="p-3.5 whitespace-nowrap">
+                      <div className="space-y-1 font-semibold text-xs">
+                        <span className="block text-emerald-400">👥 {issue.affected_citizen_count} citizens affected</span>
+                        <span className="block text-slate-300">📋 {issue.report_count} citizen reports</span>
+                      </div>
+                    </td>
+                    <td className="p-3.5 whitespace-nowrap">
+                      <span className={`px-2.5 py-1 rounded-md text-xs font-black border ${
+                        issue.priority_level === 'Critical'
+                          ? 'bg-rose-950 text-rose-400 border-rose-800'
+                          : issue.priority_level === 'High'
+                          ? 'bg-amber-950 text-amber-400 border-amber-800'
+                          : 'bg-blue-950 text-blue-400 border-blue-800'
+                      }`}>
+                        {issue.priority_level} ({issue.priority_score}/100)
+                      </span>
+                    </td>
+                    <td className="p-3.5 whitespace-nowrap">
+                      <span className="px-2 py-1 rounded text-xs font-extrabold bg-slate-800 text-slate-200 border border-slate-700">
+                        {issue.status}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => onSelectCivicIssue?.(issue)}
+                        className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs transition shadow-md"
+                      >
+                        Inspect Civic Issue &rarr;
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-400 font-bold">
+                    No Civic Issues found matching current filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        ) : (
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-[#7A0C38] text-white border-b border-[#961247]">
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colId}</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colText}</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colDept}</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colPriority}</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colSla}</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">{t.colStatus}</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider text-right">{t.colAction}</th>
+              </tr>
+            </thead>
           <tbody className={`divide-y font-sans ${
             isDarkMode ? 'divide-slate-800' : 'divide-slate-200'
           }`}>
@@ -507,6 +660,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
             )}
           </tbody>
         </table>
+        )}
       </div>
 
     </div>

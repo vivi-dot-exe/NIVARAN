@@ -1,6 +1,7 @@
 import type {
   DepartmentType,
   Grievance,
+  CivicIssue,
   LanguageType,
   PriorityLevel,
   TriageResult
@@ -127,7 +128,8 @@ function countMatches(text: string, keywords: string[]): number {
 export function performAiTriage(
   text: string,
   ward: string,
-  existingGrievances: Grievance[] = []
+  existingGrievances: Grievance[] = [],
+  existingCivicIssues: CivicIssue[] = []
 ): TriageResult {
   const language = detectLanguage(text);
   const { department, topic, confidence } = classifyDepartment(text);
@@ -173,7 +175,7 @@ export function performAiTriage(
   else if (priorityScore >= 70) priority = 'High';
   else if (priorityScore >= 45) priority = 'Medium';
 
-  // Duplicate Check
+  // Level 1: Ticket Duplicate Check
   let duplicateMatch: Grievance | null = null;
   if (ward && text.length > 10) {
     const wardGrievances = existingGrievances.filter((g) => g.Ward === ward);
@@ -182,6 +184,21 @@ export function performAiTriage(
         const wordMatch = countCommonWords(text, g.Complaint);
         if (wordMatch >= 3 || (g.Duplicate_Group && g.Department === department)) {
           duplicateMatch = g;
+          break;
+        }
+      }
+    }
+  }
+
+  // Level 2: Civic Issue Matching
+  let matchedCivicIssue: CivicIssue | null = null;
+  if (ward && text.length > 8 && existingCivicIssues.length > 0) {
+    const wardIssues = existingCivicIssues.filter(iss => iss.ward === ward && iss.status !== 'Resolved');
+    for (const issue of wardIssues) {
+      if (issue.category === department || issue.responsible_department === department) {
+        const commonWords = countCommonWords(text, issue.issue_description + ' ' + issue.issue_title);
+        if (commonWords >= 2) {
+          matchedCivicIssue = issue;
           break;
         }
       }
@@ -198,6 +215,7 @@ export function performAiTriage(
     priorityScore,
     priority,
     duplicateMatch,
+    matchedCivicIssue,
     confidence
   };
 }

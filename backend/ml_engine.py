@@ -121,3 +121,53 @@ def run_batch_clustering(texts: list) -> list:
         return clusters
     except Exception:
         return [{"topic_id": 0, "name": "General Grievances", "count": len(clean_texts)}]
+
+
+def generate_issue_title(category: str, text: str, ward: str) -> str:
+    """Generates a human-readable title for a Civic Issue based on category, keywords, and ward location."""
+    cat = (category or "").lower()
+    text_lower = (text or "").lower()
+    
+    prefix = "Civic Infrastructure Issue"
+    if "water" in cat or "water" in text_lower or "pipeline" in text_lower or "leak" in text_lower or "paani" in text_lower:
+        prefix = "Water Pipeline Leakage & Disruption"
+    elif "road" in cat or "pothole" in text_lower or "gadda" in text_lower or "sadak" in text_lower:
+        prefix = "Road Potholes & Surface Hazard"
+    elif "sanitation" in cat or "garbage" in text_lower or "kachra" in text_lower or "sewage" in text_lower or "naala" in text_lower:
+        prefix = "Garbage Accumulation & Overflow"
+    elif "electric" in cat or "power" in text_lower or "transformer" in text_lower or "bijli" in text_lower:
+        prefix = "Transformer Failure & Power Outage"
+    elif "health" in cat or "hospital" in text_lower or "doctor" in text_lower or "clinic" in text_lower:
+        prefix = "Hospital Infrastructure & Emergency Issue"
+    elif "ration" in cat or "pension" in text_lower or "distribution" in cat:
+        prefix = "Public Distribution & Pension Delay"
+    
+    clean_ward = ward.split(" - ")[-1] if " - " in ward else ward
+    return f"{prefix} near {clean_ward}"
+
+
+def compute_civic_issue_priority(severity: int, urgency: int, scope: int, report_count: int, duplicate_count: int = 0, days_active: int = 1) -> dict:
+    """
+    Transparent composite priority formula for a Civic Issue (0-100 score).
+    Score = (Severity*0.25 + Urgency*0.20 + Scope*0.15) * 20 
+            + min(25, report_count * 1.5) 
+            + min(10, duplicate_count * 2) 
+            + min(10, days_active * 0.8)
+    """
+    base = (severity * 0.25 + urgency * 0.20 + scope * 0.15) * 20
+    report_boost = min(25, report_count * 1.5)
+    dup_boost = min(10, duplicate_count * 2.0)
+    age_boost = min(10, max(1, days_active) * 0.8)
+    
+    score = int(min(100, max(15, round(base + report_boost + dup_boost + age_boost))))
+    
+    if score >= 85:
+        level = "Critical"
+    elif score >= 70:
+        level = "High"
+    elif score >= 45:
+        level = "Medium"
+    else:
+        level = "Low"
+        
+    return {"priority_score": score, "priority_level": level}

@@ -10,37 +10,61 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface ActionDrawerProps {
   grievance: Grievance | null;
+  civicIssue?: import('../../types/grievance').CivicIssue | null;
   isOpen: boolean;
   onClose: () => void;
   onUpdate: (updated: Grievance) => void;
+  onUpdateCivicIssue?: (updated: import('../../types/grievance').CivicIssue) => void;
   isDarkMode: boolean;
 }
 
 export const ActionDrawer: React.FC<ActionDrawerProps> = ({
   grievance,
+  civicIssue,
   isOpen,
   onClose,
   onUpdate,
+  onUpdateCivicIssue,
   isDarkMode
 }) => {
-  if (!isOpen || !grievance) return null;
+  if (!isOpen || (!grievance && !civicIssue)) return null;
 
-  const [status, setStatus] = useState<GrievanceStatus>(grievance.Status);
-  const [department, setDepartment] = useState<DepartmentType>(grievance.Department);
-  const [officer, setOfficer] = useState(grievance.Assigned_Officer || '');
+  const targetGrievance = grievance;
+  const targetIssue = civicIssue;
+
+  const [status, setStatus] = useState<GrievanceStatus>(
+    targetIssue ? targetIssue.status : targetGrievance!.Status
+  );
+  const [department, setDepartment] = useState<DepartmentType>(
+    targetIssue ? targetIssue.responsible_department : targetGrievance!.Department
+  );
+  const [officer, setOfficer] = useState(
+    targetIssue ? targetIssue.responsible_authority : (targetGrievance!.Assigned_Officer || '')
+  );
   const [escalationNote, setEscalationNote] = useState('');
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    const updated: Grievance = {
-      ...grievance,
-      Status: status,
-      Department: department,
-      Assigned_Officer: officer
-    };
 
-    onUpdate(updated);
+    if (targetIssue && onUpdateCivicIssue) {
+      const updatedIssue: import('../../types/grievance').CivicIssue = {
+        ...targetIssue,
+        status: status,
+        responsible_department: department,
+        responsible_authority: officer
+      };
+      onUpdateCivicIssue(updatedIssue);
+    } else if (targetGrievance) {
+      const updated: Grievance = {
+        ...targetGrievance,
+        Status: status,
+        Department: department,
+        Assigned_Officer: officer
+      };
+      onUpdate(updated);
+    }
+
     setIsSaved(true);
     setTimeout(() => {
       setIsSaved(false);
@@ -65,10 +89,10 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div>
                 <span className="text-xs font-mono text-emerald-400 font-bold block">
-                  Nodal Action Console
+                  {targetIssue ? 'Civic Issue Action Console' : 'Nodal Action Console'}
                 </span>
-                <h3 className="text-xl font-extrabold font-mono flex items-center space-x-2">
-                  <span>Ticket #{grievance.Complaint_ID}</span>
+                <h3 className="text-lg font-extrabold font-mono flex items-center space-x-2">
+                  <span>{targetIssue ? `CIVIC ISSUE #${targetIssue.id}` : `Ticket #${targetGrievance!.Complaint_ID}`}</span>
                 </h3>
               </div>
               <button
@@ -79,26 +103,57 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
               </button>
             </div>
 
-            {/* Grievance Text Card */}
-            <div className={`p-4 rounded-xl border space-y-2 ${
-              isDarkMode ? 'bg-slate-955 border-slate-800' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div className="flex items-center justify-between text-xs">
-                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                  {grievance.Language}
-                </span>
-                <span className="text-amber-400 font-bold font-mono">
-                  Priority Score: {grievance.Priority_Score}/100 ({grievance.Priority})
-                </span>
+            {/* Grievance or Civic Issue Text Card */}
+            {targetIssue ? (
+              <div className={`p-4 rounded-xl border space-y-3 ${
+                isDarkMode ? 'bg-blue-950/70 border-blue-500/40 text-blue-100' : 'bg-blue-50 border-blue-300 text-blue-900'
+              }`}>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="px-2 py-0.5 rounded bg-blue-600 text-white font-bold">
+                    {targetIssue.category}
+                  </span>
+                  <span className="text-amber-400 font-bold font-mono">
+                    Priority Score: {targetIssue.priority_score}/100 ({targetIssue.priority_level})
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-white text-sm">
+                  {targetIssue.issue_title}
+                </h4>
+                <p className="text-xs leading-relaxed italic text-blue-200">
+                  "{targetIssue.issue_description}"
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-blue-500/30">
+                  <div className="p-2 rounded bg-blue-900/40">
+                    <span className="block text-[10px] text-blue-300">Affected Citizens</span>
+                    <strong className="text-white">👥 {targetIssue.affected_citizen_count} citizens</strong>
+                  </div>
+                  <div className="p-2 rounded bg-blue-900/40">
+                    <span className="block text-[10px] text-blue-300">Citizen Reports</span>
+                    <strong className="text-white">📋 {targetIssue.report_count} reports</strong>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs leading-relaxed italic text-slate-200">
-                "{grievance.Complaint}"
-              </p>
-              <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800">
-                <span>📍 {grievance.Ward}</span>
-                <span>Submitted: {new Date(grievance.Date_Submitted).toLocaleDateString()}</span>
+            ) : (
+              <div className={`p-4 rounded-xl border space-y-2 ${
+                isDarkMode ? 'bg-slate-955 border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                    {targetGrievance!.Language}
+                  </span>
+                  <span className="text-amber-400 font-bold font-mono">
+                    Priority Score: {targetGrievance!.Priority_Score}/100 ({targetGrievance!.Priority})
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed italic text-slate-200">
+                  "{targetGrievance!.Complaint}"
+                </p>
+                <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800">
+                  <span>📍 {targetGrievance!.Ward}</span>
+                  <span>Submitted: {new Date(targetGrievance!.Date_Submitted).toLocaleDateString()}</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Edit Form */}
             <form onSubmit={handleSave} className="space-y-5 pt-2">
