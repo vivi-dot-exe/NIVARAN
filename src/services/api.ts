@@ -183,3 +183,41 @@ export async function updateCivicIssueStatusApi(
   return res.json();
 }
 
+export async function analyzeRoutingApi(
+  text: string,
+  selectedCategory?: string,
+  ward?: string
+): Promise<import('../types/grievance').RoutingResult> {
+  const res = await fetch(`${API_BASE_URL}/api/routing/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, selected_category: selectedCategory, ward })
+  });
+  if (!res.ok) throw new Error('Failed to analyze routing in FastAPI backend');
+  return res.json();
+}
+
+export async function fetchRoutingReviewQueueApi(): Promise<import('../types/grievance').CivicIssue[]> {
+  const res = await fetch(`${API_BASE_URL}/api/routing/review-queue`);
+  if (!res.ok) throw new Error('Failed to fetch routing review queue');
+  return res.json();
+}
+
+export async function overrideRoutingApi(
+  targetId: string,
+  authority: string,
+  department: string,
+  assignedOfficer?: string,
+  reason?: string,
+  officerName?: string
+): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/routing/${targetId}/override`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ authority, department, assigned_officer: assignedOfficer, reason, officer_name: officerName })
+  });
+  if (!res.ok) throw new Error('Failed to override routing in FastAPI backend');
+  return res.json();
+}
+
+

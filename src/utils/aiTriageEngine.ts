@@ -4,7 +4,8 @@ import type {
   CivicIssue,
   LanguageType,
   PriorityLevel,
-  TriageResult
+  TriageResult,
+  RoutingResult
 } from '../types/grievance';
 
 export function detectLanguage(text: string): LanguageType {
@@ -125,11 +126,14 @@ function countMatches(text: string, keywords: string[]): number {
   return count;
 }
 
+import { getAuthorityForDepartment, getNodalOfficerForJurisdiction } from '../mockData/authorities';
+
 export function performAiTriage(
   text: string,
   ward: string,
   existingGrievances: Grievance[] = [],
-  existingCivicIssues: CivicIssue[] = []
+  existingCivicIssues: CivicIssue[] = [],
+  selectedCategory?: string
 ): TriageResult {
   const language = detectLanguage(text);
   const { department, topic, confidence } = classifyDepartment(text);
@@ -205,6 +209,63 @@ export function performAiTriage(
     }
   }
 
+  // AI ROUTING CALCULATION
+  const { authority, deptName } = getAuthorityForDepartment(department);
+  const assignedOfficer = getNodalOfficerForJurisdiction(ward, department);
+
+  // Transparent Weighted Routing Confidence Score (0-100)
+  // Category match: 40%, Department match: 25%, Jurisdiction match: 20%, Authority match: 15%
+  const catConf = confidence > 0 ? confidence : 0.82;
+  const deptMatch = 0.95;
+  const wardMatch = ward ? 0.90 : 0.60;
+  const authMatch = 0.90;
+
+  const rawRoutingScore = (0.40 * catConf + 0.25 * deptMatch + 0.20 * wardMatch + 0.15 * authMatch) * 100;
+  const routingConfidence = Math.min(98, Math.max(35, Math.round(rawRoutingScore)));
+
+  // Category Mismatch Detection
+  const categoryMismatch = Boolean(
+    selectedCategory &&
+    selectedCategory !== 'ALL' &&
+    selectedCategory !== department
+  );
+
+  let routingStatus = 'Automatically Routed';
+  let requiresHumanReview = false;
+
+  if (categoryMismatch) {
+    routingStatus = 'Provisionally Routed (Category Mismatch)';
+  } else if (routingConfidence < 60) {
+    routingStatus = 'Requires Human Verification';
+    requiresHumanReview = true;
+  } else if (routingConfidence < 80) {
+    routingStatus = 'Provisionally Routed';
+  }
+
+  const reasonLines = [
+    `• Complaint text analyzed for semantic keywords (${department} confidence: ${Math.round(catConf * 100)}%).`,
+    `• Jurisdiction mapped to ${ward} under ${authority}.`,
+    `• Designated nodal officer: ${assignedOfficer}.`
+  ];
+  if (categoryMismatch) {
+    reasonLines.push(`• ⚠️ Category Mismatch: You selected '${selectedCategory}', but AI determined '${department}'.`);
+  }
+
+  const routing: RoutingResult = {
+    authority,
+    department,
+    department_name: deptName,
+    jurisdiction: ward,
+    assigned_officer: assignedOfficer,
+    routing_confidence: routingConfidence,
+    routing_status: routingStatus,
+    routing_reason: reasonLines.join('\n'),
+    requires_human_review: requiresHumanReview,
+    category_mismatch: categoryMismatch,
+    suggested_department: department,
+    citizen_selected_category: selectedCategory
+  };
+
   return {
     language,
     department,
@@ -213,10 +274,12 @@ export function performAiTriage(
     urgency,
     affectedScope,
     priorityScore,
+    priorityLevel: priority,
     priority,
     duplicateMatch,
     matchedCivicIssue,
-    confidence
+    confidence,
+    routing
   };
 }
 

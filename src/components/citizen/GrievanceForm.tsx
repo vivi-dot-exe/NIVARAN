@@ -8,6 +8,7 @@ import { NvIcon } from '../common/NvIcon';
 import {
   Send,
   AlertOctagon,
+  AlertTriangle,
   ThumbsUp,
   CheckCircle2,
   Building2,
@@ -435,6 +436,56 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               />
             </div>
 
+            {/* CATEGORY MISMATCH ALERT BANNER */}
+            <AnimatePresence>
+              {triage?.routing?.category_mismatch && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className={`p-4 rounded-xl border space-y-3 ${
+                    isDarkMode ? 'bg-amber-950/80 border-amber-500/40 text-amber-100' : 'bg-amber-50 border-amber-300 text-amber-900'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-amber-400">
+                        ⚠️ Category Mismatch Detected!
+                      </h4>
+                      <p className="text-xs text-amber-200">
+                        You selected <strong>"{triage.routing.citizen_selected_category}"</strong>, but NIVARAN AI detects your complaint relates to <strong>"{triage.routing.suggested_department}"</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end space-x-2 pt-2 border-t border-amber-500/30">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Keep citizen selection
+                        setTriage((prev) => prev ? { ...prev, routing: { ...prev.routing!, category_mismatch: false } } : null);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-amber-900/60 hover:bg-amber-800 text-amber-200 text-xs font-semibold"
+                    >
+                      Keep My Selection
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Accept AI suggested route
+                        if (triage.routing?.suggested_department) {
+                          setTriage((prev) => prev ? { ...prev, department: prev.routing!.suggested_department, routing: { ...prev.routing!, category_mismatch: false } } : null);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow-md"
+                    >
+                      ✓ Use AI Suggested Route ({triage.routing.suggested_department})
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* EXISTING CIVIC ISSUE FOUND BANNER */}
             <AnimatePresence>
               {triage?.matchedCivicIssue && (
@@ -747,6 +798,46 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                     />
                   </div>
                 </div>
+
+                {/* AI ROUTING TRANSPARENCY CARD */}
+                {triage.routing && (
+                  <div className={`p-4 rounded-xl border space-y-2.5 ${
+                    isDarkMode ? 'bg-blue-950/60 border-blue-500/40 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-900'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
+                        🧭 AI AUTHORITY ROUTING ENGINE
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        triage.routing.routing_confidence >= 80
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      }`}>
+                        🟢 {triage.routing.routing_confidence}% {triage.routing.routing_status}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-300">Responsible Authority:</span>
+                        <strong className="text-white text-right">{triage.routing.authority}</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-300">Department:</span>
+                        <strong className="text-white text-right">{triage.routing.department}</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-300">Nodal Officer:</span>
+                        <strong className="text-amber-400 text-right">{triage.routing.assigned_officer}</strong>
+                      </div>
+                    </div>
+                    <div className="p-2 rounded bg-blue-900/40 border border-blue-500/30 text-[11px] text-blue-200 space-y-1">
+                      <span className="block font-bold text-white">Why was this routed here?</span>
+                      <p className="whitespace-pre-line leading-relaxed font-sans opacity-90">
+                        {triage.routing.routing_reason}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
               </div>
             ) : (

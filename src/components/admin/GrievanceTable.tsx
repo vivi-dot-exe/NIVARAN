@@ -34,7 +34,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
-  const [viewMode, setViewMode] = useState<'issues' | 'tickets'>('issues');
+  const [viewMode, setViewMode] = useState<'issues' | 'routing' | 'tickets'>('issues');
 
   const [searchTerm, setSearchTerm] = useState<string>(() => {
     try {
@@ -101,6 +101,12 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
     }
     return true;
   });
+
+  // Filter Low-Confidence (<60%) or Category Mismatch issues for Routing Review Queue
+  const reviewQueueIssues = civicIssues.filter(
+    (iss: import('../../types/grievance').CivicIssue) =>
+      (iss.routing_confidence && iss.routing_confidence < 60) || iss.requires_human_review || iss.category_mismatch
+  );
 
   // Save admin search term and filter states
   useEffect(() => {
@@ -236,33 +242,47 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
       
       {/* View Mode Toggle Strip */}
       <div className={`p-1.5 rounded-xl border flex items-center space-x-2 ${
-        isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'
+        isDarkMode ? 'bg-slate-955 border-slate-800' : 'bg-slate-100 border-slate-200'
       }`}>
         <button
           onClick={() => setViewMode('issues')}
-          className={`flex-1 py-2 px-4 rounded-lg font-extrabold text-xs transition flex items-center justify-center space-x-2 ${
+          className={`flex-1 py-2 px-3 rounded-lg font-extrabold text-xs transition flex items-center justify-center space-x-1.5 ${
             viewMode === 'issues'
               ? 'bg-[#1E3A8A] text-white shadow-md'
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <span>🏙️ CIVIC ISSUES VIEW (PROBLEM-CENTRIC)</span>
+          <span>🏙️ CIVIC ISSUES VIEW</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/30 text-blue-200 font-mono font-black">
             {filteredIssues.length} Active Issues
           </span>
         </button>
 
         <button
+          onClick={() => setViewMode('routing')}
+          className={`flex-1 py-2 px-3 rounded-lg font-extrabold text-xs transition flex items-center justify-center space-x-1.5 ${
+            viewMode === 'routing'
+              ? 'bg-amber-600 text-slate-950 shadow-md animate-pulse'
+              : 'text-amber-400 hover:text-amber-300'
+          }`}
+        >
+          <span>⚠️ ROUTING REVIEW QUEUE</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-950 text-amber-300 font-mono font-black border border-amber-500/40">
+            {reviewQueueIssues.length} Require Review
+          </span>
+        </button>
+
+        <button
           onClick={() => setViewMode('tickets')}
-          className={`flex-1 py-2 px-4 rounded-lg font-extrabold text-xs transition flex items-center justify-center space-x-2 ${
+          className={`flex-1 py-2 px-3 rounded-lg font-extrabold text-xs transition flex items-center justify-center space-x-1.5 ${
             viewMode === 'tickets'
               ? 'bg-[#7A0C38] text-white shadow-md'
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <span>📋 INDIVIDUAL REPORTS REGISTRY</span>
+          <span>📋 CITIZEN REPORTS REGISTRY</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-500/30 text-rose-200 font-mono font-black">
-            {filteredData.length} Citizen Reports
+            {filteredData.length} Reports
           </span>
         </button>
       </div>
@@ -496,6 +516,73 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-400 font-bold">
                     No Civic Issues found matching current filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        ) : viewMode === 'routing' ? (
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-amber-600 text-slate-950 border-b border-amber-700">
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Issue ID</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Complaint & Mismatch Warning</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">AI Suggested Authority</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Routing Confidence</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider">Routing Rationale</th>
+                <th className="p-3.5 font-extrabold uppercase tracking-wider text-right">Human Verification Action</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y font-sans ${isDarkMode ? 'divide-slate-800' : 'divide-slate-200'}`}>
+              {reviewQueueIssues.length > 0 ? (
+                reviewQueueIssues.map((issue) => (
+                  <tr key={issue.id} className="bg-amber-950/20 hover:bg-amber-900/30 transition">
+                    <td className="p-3.5 font-mono font-extrabold text-amber-400 whitespace-nowrap">
+                      #{issue.id}
+                    </td>
+                    <td className="p-3.5 max-w-xs">
+                      <div className="space-y-1">
+                        <h4 className="font-extrabold text-white text-xs">{issue.issue_title}</h4>
+                        {issue.category_mismatch && (
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold block">
+                            ⚠️ Mismatch: Selected '{issue.citizen_selected_category}' vs AI '{issue.category}'
+                          </span>
+                        )}
+                        <p className="line-clamp-2 text-slate-300 text-[11px]">"{issue.issue_description}"</p>
+                      </div>
+                    </td>
+                    <td className="p-3.5 whitespace-nowrap">
+                      <div className="space-y-1">
+                        <span className="font-extrabold block text-amber-300">{issue.responsible_authority}</span>
+                        <span className="text-[11px] font-medium block text-slate-400">{issue.category} • {issue.ward}</span>
+                      </div>
+                    </td>
+                    <td className="p-3.5 whitespace-nowrap">
+                      <span className={`px-2.5 py-1 rounded-md text-xs font-mono font-black border ${
+                        (issue.routing_confidence || 50) < 60
+                          ? 'bg-rose-950 text-rose-400 border-rose-800'
+                          : 'bg-amber-950 text-amber-400 border-amber-800'
+                      }`}>
+                        🔴 {issue.routing_confidence || 54}% (Verification Req.)
+                      </span>
+                    </td>
+                    <td className="p-3.5 max-w-xs text-[11px] text-slate-300 whitespace-pre-line">
+                      {issue.routing_reason || '• Dual keyword signals detected.\n• Verification required before officer dispatch.'}
+                    </td>
+                    <td className="p-3.5 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => onSelectCivicIssue?.(issue)}
+                        className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition shadow-md"
+                      >
+                        Inspect & Confirm Route &rarr;
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-400 font-bold">
+                    ✓ Routing Review Queue empty. All active issues are automatically routed with high confidence (&ge;80%).
                   </td>
                 </tr>
               )}

@@ -20,6 +20,7 @@ from ml_engine import (
     find_semantic_duplicate,
     generate_issue_title,
     run_batch_clustering,
+    route_grievance,
 )
 
 # Initialize database tables
@@ -81,6 +82,20 @@ class TicketResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RoutingAnalyzeRequest(BaseModel):
+    text: str
+    selected_category: Optional[str] = None
+    ward: Optional[str] = "Ward 4 - Andheri West"
+
+
+class RoutingOverrideRequest(BaseModel):
+    authority: str
+    department: str
+    assigned_officer: Optional[str] = None
+    reason: Optional[str] = "Officer Manual Override"
+    officer_name: Optional[str] = "Nodal Officer"
+
+
 class CivicIssueResponse(BaseModel):
     id: str
     issue_title: str
@@ -103,6 +118,13 @@ class CivicIssueResponse(BaseModel):
     scope_score: int
     responsible_department: str
     responsible_authority: str
+    assigned_officer: Optional[str] = "Ward Nodal Officer"
+    routing_confidence: Optional[int] = 85
+    routing_status: Optional[str] = "Automatically Routed"
+    routing_reason: Optional[str] = None
+    requires_human_review: Optional[bool] = False
+    category_mismatch: Optional[bool] = False
+    manual_override: Optional[bool] = False
     cluster_confidence: float
     tickets: List[TicketResponse] = []
 
@@ -165,6 +187,9 @@ def attach_or_create_civic_issue(db: Session, ticket: models.Ticket) -> models.C
         issue_id = f"CI-{uuid.uuid4().hex[:4].upper()}"
         title = generate_issue_title(ticket.category, ticket.text, ticket.location)
         
+        # Run AI Routing Engine
+        r_info = route_grievance(ticket.text, ticket.category, ticket.location)
+
         # Calculate initial severity/urgency/scope from priority_score
         severity = 5 if ticket.priority_score >= 85 else 4 if ticket.priority_score >= 70 else 3
         urgency = severity
@@ -176,8 +201,8 @@ def attach_or_create_civic_issue(db: Session, ticket: models.Ticket) -> models.C
             id=issue_id,
             issue_title=title,
             issue_description=ticket.text,
-            category=ticket.category or "General",
-            subcategory=ticket.category or "General Civic Issue",
+            category=r_info["department"],
+            subcategory=r_info["department_name"],
             ward=ticket.location,
             latitude=19.1197,
             longitude=72.8464,
@@ -192,8 +217,15 @@ def attach_or_create_civic_issue(db: Session, ticket: models.Ticket) -> models.C
             severity_score=severity,
             urgency_score=urgency,
             scope_score=scope,
-            responsible_department=ticket.category or "Sanitation & Waste",
-            responsible_authority=f"Nodal Officer - {ticket.location}",
+            responsible_department=r_info["department"],
+            responsible_authority=r_info["authority"],
+            assigned_officer=r_info["assigned_officer"],
+            routing_confidence=r_info["routing_confidence"],
+            routing_status=r_info["routing_status"],
+            routing_reason=r_info["routing_reason"],
+            requires_human_review=r_info["requires_human_review"],
+            category_mismatch=r_info["category_mismatch"],
+            citizen_selected_category=ticket.category,
             cluster_confidence=0.88,
         )
         db.add(new_issue)
@@ -201,6 +233,15 @@ def attach_or_create_civic_issue(db: Session, ticket: models.Ticket) -> models.C
         db.refresh(new_issue)
 
         ticket.civic_issue_id = new_issue.id
+        ticket.responsible_authority = r_info["authority"]
+        ticket.responsible_department = r_info["department"]
+        ticket.assigned_officer = r_info["assigned_officer"]
+        ticket.routing_confidence = r_info["routing_confidence"]
+        ticket.routing_status = r_info["routing_status"]
+        ticket.routing_reason = r_info["routing_reason"]
+        ticket.requires_human_review = r_info["requires_human_review"]
+        ticket.category_mismatch = r_info["category_mismatch"]
+        ticket.citizen_selected_category = ticket.category
         db.commit()
         return new_issue
 
@@ -399,6 +440,145 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
         "records_added": records_added,
         "civic_issues_count": len(issues_created_or_updated),
     }
+
+
+# AI ROUTING ENDPOINTS
+@app.post("/api/routing/analyze")
+def analyze_routing(req: RoutingAnalyzeRequest):
+    """Analyzes complaint text, ward, and optional citizen category to return real-time routing recommendations."""
+    return route_grievance(req.text, req.selected_category, req.ward or "Ward 4 - Andheri West")
+
+
+@app.get("/api/routing/review-queue")
+def get_routing_review_queue(db: Session = Depends(get_db)):
+    """Fetches complaints/civic issues requiring human review (low confidence <60% or category mismatches)."""
+    low_conf_issues = (
+        db.query(models.CivicIssue)
+        .filter((models.CivicIssue.routing_confidence < 60) | (models.CivicIssue.requires_human_review == True) | (models.CivicIssue.category_mismatch == True))
+        .all()
+    )
+    return low_conf_issues
+
+
+@app.post("/api/routing/{target_id}/override")
+def override_routing(target_id: str, req: RoutingOverrideRequest, db: Session = Depends(get_db)):
+    """Enables Nodal Officer to manually override authority/department routing with mandatory audit logging."""
+    civic_issue = db.query(models.CivicIssue).filter(models.CivicIssue.id == target_id).first()
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == target_id).first()
+
+    if not civic_issue and not ticket:
+        raise HTTPException(status_code=404, detail="Target Complaint or Civic Issue not found")
+
+    prev_auth = civic_issue.responsible_authority if civic_issue else ticket.responsible_authority
+    prev_dept = civic_issue.responsible_department if civic_issue else ticket.responsible_department
+
+    if civic_issue:
+        civic_issue.responsible_authority = req.authority
+        civic_issue.responsible_department = req.department
+        if req.assigned_officer:
+            civic_issue.assigned_officer = req.assigned_officer
+        civic_issue.manual_override = True
+        civic_issue.override_reason = req.reason
+        civic_issue.overridden_by = req.officer_name
+        civic_issue.override_timestamp = datetime.utcnow()
+        civic_issue.routing_status = "Officer Overridden"
+        civic_issue.requires_human_review = False
+
+        # Cascade override to attached child tickets
+        for t in civic_issue.tickets:
+            t.responsible_authority = req.authority
+            t.responsible_department = req.department
+            if req.assigned_officer:
+                t.assigned_officer = req.assigned_officer
+            t.manual_override = True
+            t.override_reason = req.reason
+            t.routing_status = "Officer Overridden"
+
+    elif ticket:
+        ticket.responsible_authority = req.authority
+        ticket.responsible_department = req.department
+        if req.assigned_officer:
+            ticket.assigned_officer = req.assigned_officer
+        ticket.manual_override = True
+        ticket.override_reason = req.reason
+        ticket.routing_status = "Officer Overridden"
+        ticket.requires_human_review = False
+
+    # Log to RoutingAuditLog table
+    audit = models.RoutingAuditLog(
+        target_id=target_id,
+        target_type="CivicIssue" if civic_issue else "Ticket",
+        action="OFFICER_OVERRIDE",
+        previous_authority=prev_auth,
+        previous_department=prev_dept,
+        new_authority=req.authority,
+        new_department=req.department,
+        performed_by=req.officer_name or "Nodal Officer",
+        reason=req.reason,
+        timestamp=datetime.utcnow()
+    )
+    db.add(audit)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Routing updated to {req.authority} - {req.department}",
+        "target_id": target_id
+    }
+
+
+@app.get("/api/authorities")
+def get_authorities_directory():
+    """Returns the administrative government authority & department directory for NIVARAN."""
+    return [
+        {
+            "id": "AUTH-MCGM",
+            "name": "Municipal Corporation of Greater Mumbai",
+            "type": "Municipal Urban Local Body",
+            "departments": [
+                "Roads & Infra",
+                "Sanitation & Waste",
+                "Storm Water Drainage",
+                "Building Proposals & License"
+            ]
+        },
+        {
+            "id": "AUTH-MWSB",
+            "name": "Maharashtra Water Supply & Sewerage Board",
+            "type": "State Water & Sanitation Utility",
+            "departments": [
+                "Water Supply",
+                "Sewerage & Effluent Treatment"
+            ]
+        },
+        {
+            "id": "AUTH-BEST",
+            "name": "BEST Electricity & Power Supply Board",
+            "type": "Power & Distribution Utility",
+            "departments": [
+                "Electricity",
+                "Street Lighting & Substation Operations"
+            ]
+        },
+        {
+            "id": "AUTH-PHD",
+            "name": "Public Health Department & NIC Healthcare Cell",
+            "type": "State Health & Epidemic Control Authority",
+            "departments": [
+                "Public Health & Healthcare",
+                "Vector & Disease Control"
+            ]
+        },
+        {
+            "id": "AUTH-FCSD",
+            "name": "Food & Civil Supplies Department",
+            "type": "Public Distribution System Board",
+            "departments": [
+                "Public Distribution",
+                "Ration & Pension Benefits"
+            ]
+        }
+    ]
 
 
 if __name__ == "__main__":

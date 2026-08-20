@@ -170,4 +170,120 @@ def compute_civic_issue_priority(severity: int, urgency: int, scope: int, report
     else:
         level = "Low"
         
-    return {"priority_score": score, "priority_level": level}
+def route_grievance(complaint_text: str, selected_category: str = None, ward: str = "Ward 4 - Andheri West") -> dict:
+    """
+    AI Authority & Department Routing Engine.
+    Determines responsible authority, department, ward jurisdiction, nodal officer,
+    transparent 0-100 routing confidence score, and bulleted routing reason.
+    """
+    text_lower = (complaint_text or "").lower()
+    
+    # 1. AI Department Classification & Keyword Match
+    water_keywords = ["water", "pipeline", "leak", "pipe", "tap", "pressure", "paani", "pani", "nall", "contamination", "dirty water"]
+    infra_keywords = ["pothole", "road", "gadda", "gaddhe", "subway", "footpath", "cave-in", "sadak", "bridge", "asphalt", "traffic", "crater"]
+    sanitation_keywords = ["garbage", "kachra", "waste", "drain", "sewage", "naala", "nala", "dump", "smell", "foul", "uncollected", "safai"]
+    elec_keywords = ["transformer", "power", "light", "bijli", "blackout", "meter", "batti", "voltage", "blast", "spark", "outage"]
+    health_keywords = ["hospital", "doctor", "clinic", "medical", "medicine", "bed", "ambulance", "dengue", "malaria", "aspatal", "aspataal", "dawa"]
+    pds_keywords = ["ration", "pension", "dbt", "card", "biometric", "senior citizen", "grain", "dukan"]
+
+    scores = {
+        "Roads & Infra": sum(1 for k in infra_keywords if k in text_lower) * 1.5,
+        "Water Supply": sum(1 for k in water_keywords if k in text_lower) * 1.5,
+        "Sanitation & Waste": sum(1 for k in sanitation_keywords if k in text_lower) * 1.5,
+        "Electricity": sum(1 for k in elec_keywords if k in text_lower) * 1.5,
+        "Public Health & Healthcare": sum(1 for k in health_keywords if k in text_lower) * 1.8,
+        "Public Distribution": sum(1 for k in pds_keywords if k in text_lower) * 1.3
+    }
+    
+    sorted_depts = sorted(scores.items(), key=lambda x: x[1], reverse=0 > 1 and x[1] or x[1], reverse=True)
+    top_dept, top_score = sorted_depts[0]
+    second_dept, second_score = sorted_depts[1] if len(sorted_depts) > 1 else ("General", 0)
+
+    # 2. Responsible Authority Mapping
+    authority_map = {
+        "Roads & Infra": ("Municipal Corporation of Greater Mumbai", "Municipal Roads Department"),
+        "Water Supply": ("Maharashtra Water Supply & Sewerage Board", "Water Maintenance Division"),
+        "Sanitation & Waste": ("Municipal Corporation of Greater Mumbai", "Solid Waste Management Division"),
+        "Electricity": ("BEST Electricity & Power Supply Board", "High Voltage Grid Operations"),
+        "Public Health & Healthcare": ("Public Health Department & NIC Healthcare Cell", "Civic Health & Sanitation Division"),
+        "Public Distribution": ("Food & Civil Supplies Department", "Social Welfare & Pension Cell")
+    }
+
+    authority_name, dept_name = authority_map.get(top_dept, ("Municipal Corporation", "General Public Works"))
+
+    # 3. Ward Jurisdiction & Nodal Officer Assignment
+    clean_ward = ward.split(" - ")[-1] if " - " in ward else ward
+    officer_map = {
+        "Roads & Infra": f"{ward} Roads Nodal Officer (Er. Rajesh Sharma)",
+        "Water Supply": f"{ward} Water Executive Engineer (Er. Vikram Desai)",
+        "Sanitation & Waste": f"{ward} Chief Sanitation Inspector (Shri Suresh Patil)",
+        "Electricity": f"{ward} Assistant Electrical Engineer (Er. Amit Verma)",
+        "Public Health & Healthcare": f"{ward} Medical Health Officer (Dr. Ananya Sen)",
+        "Public Distribution": f"{ward} Rationing Inspector (Smt. Meena Joshi)"
+    }
+    assigned_officer = officer_map.get(top_dept, f"{ward} Nodal Authority")
+
+    # 4. Transparent Routing Confidence Calculation (0 - 100)
+    # Category confidence (0.40): Ratio of top score to total
+    total_score = sum(scores.values())
+    cat_conf = min(0.95, max(0.40, top_score / (total_score + 0.1))) if total_score > 0 else 0.50
+    
+    # Ambiguity penalty if top 2 scores are very close (e.g. water leaking on road)
+    ambiguous = False
+    if top_score > 0 and (top_score - second_score) <= 0.5:
+        ambiguous = True
+        cat_conf = 0.52
+
+    dept_match = 0.95 if top_score > 0 else 0.60
+    ward_match = 0.90 if ward else 0.50
+    auth_match = 0.90
+
+    raw_conf = (0.40 * cat_conf + 0.25 * dept_match + 0.20 * ward_match + 0.15 * auth_match) * 100
+    confidence_score = int(min(98, max(35, round(raw_conf))))
+
+    # 5. Routing Status & Human Review Flags
+    if confidence_score >= 80 and not ambiguous:
+        routing_status = "Automatically Routed"
+        requires_human_review = False
+    elif confidence_score >= 60 and not ambiguous:
+        routing_status = "Provisionally Routed"
+        requires_human_review = False
+    else:
+        routing_status = "Requires Human Verification"
+        requires_human_review = True
+
+    # 6. Category Mismatch Detection
+    category_mismatch = False
+    if selected_category and selected_category != "ALL" and selected_category != top_dept:
+        # Check if selected category is strictly different
+        category_mismatch = True
+        if confidence_score >= 80:
+            routing_status = "Provisionally Routed (Category Mismatch)"
+
+    # 7. Bulleted Step-by-Step Routing Rationale
+    reason_lines = [
+        f"• Complaint text analyzed for semantic keywords ({top_dept} match score: {top_score:.1f}).",
+        f"• Jurisdiction mapped to {ward} under {authority_name}.",
+        f"• Designated nodal officer: {assigned_officer}.",
+    ]
+    if category_mismatch:
+        reason_lines.append(f"• ⚠️ Category Mismatch Warning: Citizen selected '{selected_category}', but AI recommends '{top_dept}'.")
+    if ambiguous:
+        reason_lines.append(f"• ⚠️ Ambiguity Detected: Complaint contains dual signals for '{top_dept}' ({top_score:.1f}) and '{second_dept}' ({second_score:.1f}). Sent for human verification.")
+
+    routing_reason = "\n".join(reason_lines)
+
+    return {
+        "authority": authority_name,
+        "department": top_dept,
+        "department_name": dept_name,
+        "jurisdiction": ward,
+        "assigned_officer": assigned_officer,
+        "routing_confidence": confidence_score,
+        "routing_status": routing_status,
+        "routing_reason": routing_reason,
+        "requires_human_review": requires_human_review,
+        "category_mismatch": category_mismatch,
+        "suggested_department": top_dept,
+        "citizen_selected_category": selected_category
+    }

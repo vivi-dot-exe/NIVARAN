@@ -38,21 +38,32 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
   const [department, setDepartment] = useState<DepartmentType>(
     targetIssue ? targetIssue.responsible_department : targetGrievance!.Department
   );
+  const [authority, setAuthority] = useState<string>(
+    targetIssue ? targetIssue.responsible_authority : (targetGrievance?.responsible_authority || 'Municipal Corporation of Greater Mumbai')
+  );
   const [officer, setOfficer] = useState(
-    targetIssue ? targetIssue.responsible_authority : (targetGrievance!.Assigned_Officer || '')
+    targetIssue ? (targetIssue.assigned_officer || 'Ward Nodal Officer') : (targetGrievance!.Assigned_Officer || '')
   );
   const [escalationNote, setEscalationNote] = useState('');
+  const [overrideReason, setOverrideReason] = useState('');
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const isOverridden = Boolean(overrideReason.trim());
 
     if (targetIssue && onUpdateCivicIssue) {
       const updatedIssue: import('../../types/grievance').CivicIssue = {
         ...targetIssue,
         status: status,
         responsible_department: department,
-        responsible_authority: officer
+        responsible_authority: authority,
+        assigned_officer: officer,
+        manual_override: isOverridden || targetIssue.manual_override,
+        override_reason: isOverridden ? overrideReason : targetIssue.override_reason,
+        routing_status: isOverridden ? 'Officer Overridden' : targetIssue.routing_status,
+        requires_human_review: false
       };
       onUpdateCivicIssue(updatedIssue);
     } else if (targetGrievance) {
@@ -60,7 +71,12 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
         ...targetGrievance,
         Status: status,
         Department: department,
-        Assigned_Officer: officer
+        responsible_authority: authority,
+        Assigned_Officer: officer,
+        manual_override: isOverridden || targetGrievance.manual_override,
+        override_reason: isOverridden ? overrideReason : targetGrievance.override_reason,
+        routing_status: isOverridden ? 'Officer Overridden' : targetGrievance.routing_status,
+        requires_human_review: false
       };
       onUpdate(updated);
     }
@@ -183,6 +199,45 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
                 </div>
               </div>
 
+              {/* AI ROUTING TRANSPARENCY & AUDIT CARD */}
+              <div className={`p-4 rounded-xl border space-y-2.5 text-xs ${
+                isDarkMode ? 'bg-blue-950/40 border-blue-500/30 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-900'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
+                    🧭 AI ROUTING DECISION & CONFIDENCE
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    🟢 {targetIssue?.routing_confidence || targetGrievance?.routing_confidence || 85}% {targetIssue?.routing_status || targetGrievance?.routing_status || 'Automatically Routed'}
+                  </span>
+                </div>
+                <div className="p-2 rounded bg-blue-900/40 border border-blue-500/30 text-[11px] text-blue-200 space-y-1">
+                  <span className="block font-bold text-white">Why was this routed here?</span>
+                  <p className="whitespace-pre-line leading-relaxed opacity-90">
+                    {targetIssue?.routing_reason || targetGrievance?.routing_reason || `• Complaint text matched semantic category.\n• Mapped to Ward Jurisdiction under Municipal Corporation.\n• Nodal officer assigned.`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Re-assign Authority */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-2 text-slate-300">
+                  Responsible Government Authority
+                </label>
+                <select
+                  value={authority}
+                  onChange={(e) => setAuthority(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-medium text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                >
+                  <option value="Municipal Corporation of Greater Mumbai">Municipal Corporation of Greater Mumbai (MCGM)</option>
+                  <option value="Maharashtra Water Supply & Sewerage Board">Maharashtra Water Supply & Sewerage Board (MWSB)</option>
+                  <option value="BEST Electricity & Power Supply Board">BEST Electricity & Power Supply Board</option>
+                  <option value="Public Health Department & NIC Healthcare Cell">Public Health Department & NIC Healthcare Cell</option>
+                  <option value="Public Works Department (PWD State Highways)">Public Works Department (PWD State Highways)</option>
+                  <option value="Food & Civil Supplies Department">Food & Civil Supplies Department (PDS Board)</option>
+                </select>
+              </div>
+
               {/* Re-assign Department */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider mb-2 text-slate-300">
@@ -215,13 +270,30 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
                 />
               </div>
 
+              {/* Officer Manual Override Rationale */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-1 text-amber-400">
+                  Officer Manual Override Rationale (Audit Trail)
+                </label>
+                <input
+                  type="text"
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="e.g. Incorrect authority — road falls under PWD state highway jurisdiction"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-800 border border-amber-500/40 text-xs text-amber-200 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  💡 Submitting a rationale logs an official officer override timestamp and audit log ("AI recommends. Government authority remains accountable").
+                </span>
+              </div>
+
               {/* Escalation Notes */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider mb-2 text-slate-300">
                   DARPG Escalation Audit Note
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={escalationNote}
                   onChange={(e) => setEscalationNote(e.target.value)}
                   placeholder="Add officer inspection note, field dispatch code, or SLA extension rationale..."

@@ -23,7 +23,8 @@ import {
   fetchCivicIssuesApi,
   createTicketApi,
   updateTicketStatusApi,
-  updateCivicIssueStatusApi
+  updateCivicIssueStatusApi,
+  overrideRoutingApi
 } from './services/api';
 import { Search, FileText } from 'lucide-react';
 
@@ -286,6 +287,16 @@ export function App() {
     if (isBackendConnected) {
       try {
         await updateCivicIssueStatusApi(updatedIssue.id, updatedIssue.status, updatedIssue.responsible_authority);
+        if (updatedIssue.manual_override) {
+          await overrideRoutingApi(
+            updatedIssue.id,
+            updatedIssue.responsible_authority,
+            updatedIssue.responsible_department,
+            updatedIssue.assigned_officer,
+            updatedIssue.override_reason || 'Officer Override',
+            currentUser?.name || 'Nodal Officer'
+          );
+        }
       } catch (err) {
         console.warn('FastAPI civic issue status patch fallback:', err);
       }
