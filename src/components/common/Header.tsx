@@ -35,7 +35,8 @@ interface HeaderProps {
   onOpenSiteMap: () => void;
   onGoHome: () => void;
   onOpenSignIn: () => void;
-  currentUser: { name: string; role: string; email: string } | null;
+  onOpenRegister?: () => void;
+  currentUser: { id?: string; name: string; role: string; email: string; ward?: string } | null;
   onSignOut: () => void;
 }
 
@@ -53,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSiteMap,
   onGoHome,
   onOpenSignIn,
+  onOpenRegister,
   currentUser,
   onSignOut
 }) => {
@@ -309,23 +311,38 @@ export const Header: React.FC<HeaderProps> = ({
             {currentUser ? (
               <div className="flex items-center space-x-2 bg-[#5C082A] px-3 py-1 rounded border border-amber-400/50 text-amber-300">
                 <User className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-extrabold truncate max-w-[130px]">{currentUser.name}</span>
+                <div className="flex flex-col text-left">
+                  <span className="font-extrabold text-xs truncate max-w-[130px]">{currentUser.name}</span>
+                  <span className="text-[9px] font-mono text-amber-200">
+                    {currentUser.role === 'SUPER_ADMIN' ? '👑 Admin' : currentUser.role === 'NODAL_OFFICER' ? '🏛️ Nodal Officer' : '👤 Citizen'}
+                  </span>
+                </div>
                 <button
                   onClick={onSignOut}
-                  className="p-1 rounded hover:bg-black/30 text-rose-300 transition"
+                  className="p-1 rounded hover:bg-black/30 text-rose-300 transition ml-1"
                   title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <button
-                onClick={onOpenSignIn}
-                className="px-4 py-1.5 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow-sm flex items-center space-x-1 cursor-pointer"
-              >
-                <span>{t.signIn}</span>
-                <span>&rarr;</span>
-              </button>
+              <div className="flex items-center space-x-1.5">
+                {onOpenRegister && (
+                  <button
+                    onClick={onOpenRegister}
+                    className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-sm"
+                  >
+                    Register
+                  </button>
+                )}
+                <button
+                  onClick={onOpenSignIn}
+                  className="px-2.5 py-1 rounded bg-[#5C082A] hover:bg-[#961247] border border-amber-400/40 text-amber-300 font-extrabold text-xs transition flex items-center space-x-1"
+                >
+                  <Lock className="w-3 h-3 text-amber-300" />
+                  <span>Sign In</span>
+                </button>
+              </div>
             )}
           </div>
 

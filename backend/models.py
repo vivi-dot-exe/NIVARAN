@@ -37,11 +37,37 @@ class Jurisdiction(Base):
     authority_id = Column(String, ForeignKey("Authority.id"), nullable=False)
 
 
+class User(Base):
+    __tablename__ = "User"
+
+    id = Column(String, primary_key=True, index=True) # e.g. CIT-10482 or OFF-2048
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    mobile_number = Column(String, unique=True, index=True, nullable=True)
+    password_hash = Column(String, nullable=False)
+    salt = Column(String, nullable=False)
+    role = Column(String, default="CITIZEN", nullable=False) # CITIZEN, NODAL_OFFICER, DEPARTMENT_ADMIN, SUPER_ADMIN
+    address = Column(Text, nullable=True)
+    city = Column(String, default="Mumbai", nullable=True)
+    state = Column(String, default="Maharashtra", nullable=True)
+    district = Column(String, default="Mumbai Suburban", nullable=True)
+    ward = Column(String, default="Ward 4 - Andheri West", nullable=True)
+    preferred_language = Column(String, default="English", nullable=True)
+    account_status = Column(String, default="ACTIVE", nullable=False) # ACTIVE, SUSPENDED, DEACTIVATED
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_login = Column(DateTime, nullable=True)
+
+    tickets = relationship("Ticket", back_populates="citizen", cascade="all, delete-orphan")
+
+
 class Officer(Base):
     __tablename__ = "Officer"
 
     id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("User.id"), nullable=True)
     name = Column(String, nullable=False)
+    email = Column(String, nullable=True)
+    employee_identifier = Column(String, nullable=True) # e.g. EMP-MCGM-4092
     department_id = Column(String, ForeignKey("Department.id"), nullable=False)
     jurisdiction_id = Column(String, ForeignKey("Jurisdiction.id"), nullable=False)
     designation = Column(String, default="Ward Nodal Officer", nullable=False)
@@ -159,10 +185,16 @@ class Ticket(Base):
     root_cause = Column(Text, nullable=True)
     resolution_plan_json = Column(Text, nullable=True)
     
+    # Citizen Ownership & FK
+    citizen_id = Column(String, ForeignKey("User.id"), nullable=True)
+    citizen_name = Column(String, nullable=True)
+    citizen_mobile = Column(String, nullable=True)
+
     # Foreign key linking ticket to parent CivicIssue
     civic_issue_id = Column(String, ForeignKey("CivicIssue.id"), nullable=True)
 
     civic_issue = relationship("CivicIssue", back_populates="tickets")
+    citizen = relationship("User", back_populates="tickets")
 
 
 class RoutingAuditLog(Base):

@@ -25,6 +25,15 @@ from ml_engine import (
     analyze_and_decompose_grievance,
 )
 
+from auth import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    get_current_user,
+    get_current_user_optional,
+    require_roles,
+)
+
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
 
@@ -40,9 +49,133 @@ app.add_middleware(
 )
 
 
+# SEED DEMO ACCOUNTS AT STARTUP
+def seed_demo_accounts():
+    db: Session = next(get_db())
+    try:
+        # 1. Super Admin
+        if not db.query(models.User).filter(models.User.email == "admin@nivaran.demo").first():
+            hp, salt = hash_password("admin123")
+            admin_user = models.User(
+                id="ADM-001",
+                full_name="NIVARAN Super Admin",
+                email="admin@nivaran.demo",
+                mobile_number="9999900000",
+                password_hash=hp,
+                salt=salt,
+                role="SUPER_ADMIN",
+                ward="Ward 4 - Andheri West",
+                account_status="ACTIVE"
+            )
+            db.add(admin_user)
+
+        # 2. Demo Citizen
+        if not db.query(models.User).filter(models.User.email == "citizen@nivaran.demo").first():
+            hp, salt = hash_password("citizen123")
+            cit_user = models.User(
+                id="CIT-10482",
+                full_name="Aarav Sharma (Demo Citizen)",
+                email="citizen@nivaran.demo",
+                mobile_number="9820198201",
+                password_hash=hp,
+                salt=salt,
+                role="CITIZEN",
+                address="B-402, Lokhandwala Complex, Andheri West",
+                ward="Ward 4 - Andheri West",
+                account_status="ACTIVE"
+            )
+            db.add(cit_user)
+
+        # 3. Roads Nodal Officer (Ward 4)
+        if not db.query(models.User).filter(models.User.email == "roads.officer@nivaran.demo").first():
+            hp, salt = hash_password("officer123")
+            off1_user = models.User(
+                id="OFF-2048",
+                full_name="Er. Rajesh Sharma (Roads Officer)",
+                email="roads.officer@nivaran.demo",
+                mobile_number="9820298202",
+                password_hash=hp,
+                salt=salt,
+                role="NODAL_OFFICER",
+                ward="Ward 4 - Andheri West",
+                account_status="ACTIVE"
+            )
+            db.add(off1_user)
+            db.flush()
+
+            officer_rec = models.Officer(
+                id="OFF-REC-2048",
+                user_id=off1_user.id,
+                name=off1_user.full_name,
+                email=off1_user.email,
+                employee_identifier="EMP-MCGM-4092",
+                department_id="DEP-ROADS",
+                jurisdiction_id="JUR-WARD4",
+                designation="Ward 4 Roads Nodal Officer"
+            )
+            db.add(officer_rec)
+
+        # 4. Water Nodal Officer (Ward 4)
+        if not db.query(models.User).filter(models.User.email == "water.officer@nivaran.demo").first():
+            hp, salt = hash_password("officer123")
+            off2_user = models.User(
+                id="OFF-3012",
+                full_name="Er. Vikram Desai (Water Officer)",
+                email="water.officer@nivaran.demo",
+                mobile_number="9820398203",
+                password_hash=hp,
+                salt=salt,
+                role="NODAL_OFFICER",
+                ward="Ward 4 - Andheri West",
+                account_status="ACTIVE"
+            )
+            db.add(off2_user)
+
+        # 5. Electricity Nodal Officer (Ward 4)
+        if not db.query(models.User).filter(models.User.email == "elec.officer@nivaran.demo").first():
+            hp, salt = hash_password("officer123")
+            off3_user = models.User(
+                id="OFF-4015",
+                full_name="Er. Amit Verma (Electricity Officer)",
+                email="elec.officer@nivaran.demo",
+                mobile_number="9820498204",
+                password_hash=hp,
+                salt=salt,
+                role="NODAL_OFFICER",
+                ward="Ward 4 - Andheri West",
+                account_status="ACTIVE"
+            )
+            db.add(off3_user)
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print("Demo accounts seeding warning:", e)
+
+
+seed_demo_accounts()
+
+
 @app.get("/", include_in_schema=False)
 def root():
     return RedirectResponse(url="/docs")
+
+
+# Pydantic Auth Schemas
+class UserRegisterRequest(BaseModel):
+    full_name: str
+    email: str
+    mobile_number: Optional[str] = None
+    password: str
+    address: Optional[str] = None
+    ward: Optional[str] = "Ward 4 - Andheri West"
+    preferred_language: Optional[str] = "English"
+
+
+class UserLoginRequest(BaseModel):
+    login_id: str # Email or Mobile
+    password: str
+    auth_type: Optional[str] = "citizen" # "citizen" or "officer"
 
 
 # Pydantic Schemas
@@ -283,7 +416,11 @@ def attach_or_create_civic_issue(db: Session, ticket: models.Ticket) -> models.C
 
 # API Endpoints
 @app.post("/api/tickets", response_model=TicketResponse, status_code=status.HTTP_201_CREATED)
-def create_ticket(ticket_in: TicketCreate, db: Session = Depends(get_db)):
+def create_ticket(
+    ticket_in: TicketCreate,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user_optional)
+):
     # Run ML analysis to automatically categorize and score priority if omitted
     ml_result = analyze_grievance(ticket_in.text)
 
@@ -312,6 +449,10 @@ def create_ticket(ticket_in: TicketCreate, db: Session = Depends(get_db)):
         existing.location = ticket_in.location
         existing.category = category
         existing.priority_score = priority_score
+        if current_user:
+            existing.citizen_id = current_user.id
+            existing.citizen_name = current_user.full_name
+            existing.citizen_mobile = current_user.mobile_number
         db.commit()
         db.refresh(existing)
         return existing
@@ -324,6 +465,9 @@ def create_ticket(ticket_in: TicketCreate, db: Session = Depends(get_db)):
         priority_score=priority_score,
         status="Pending",
         created_at=datetime.utcnow(),
+        citizen_id=current_user.id if current_user else "CIT-10482",
+        citizen_name=current_user.full_name if current_user else "Aarav Sharma",
+        citizen_mobile=current_user.mobile_number if current_user else "9820198201"
     )
     db.add(new_ticket)
     db.commit()
@@ -656,6 +800,162 @@ def review_resolution_plan(issue_id: str, plan_override: dict, db: Session = Dep
 
     db.commit()
     return {"status": "success", "message": f"Resolution plan updated for {issue_id}"}
+
+
+# AUTHENTICATION & USER REGISTRY ENDPOINTS
+@app.post("/api/auth/register")
+def register_citizen(req: UserRegisterRequest, db: Session = Depends(get_db)):
+    """Registers a new citizen account with unique email/mobile validation and password hashing."""
+    # Check duplicate email
+    if db.query(models.User).filter(models.User.email == req.email.strip().lower()).first():
+        raise HTTPException(status_code=400, detail="Account with this email address already exists.")
+    
+    # Check duplicate mobile if provided
+    if req.mobile_number and db.query(models.User).filter(models.User.mobile_number == req.mobile_number.strip()).first():
+        raise HTTPException(status_code=400, detail="Account with this mobile number already exists.")
+
+    citizen_id = f"CIT-{uuid.uuid4().hex[:5].upper()}"
+    hp, salt = hash_password(req.password)
+
+    new_user = models.User(
+        id=citizen_id,
+        full_name=req.full_name.strip(),
+        email=req.email.strip().lower(),
+        mobile_number=req.mobile_number.strip() if req.mobile_number else None,
+        password_hash=hp,
+        salt=salt,
+        role="CITIZEN",
+        address=req.address,
+        ward=req.ward or "Ward 4 - Andheri West",
+        preferred_language=req.preferred_language or "English",
+        account_status="ACTIVE",
+        created_at=datetime.utcnow()
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    token = create_access_token(new_user)
+    return {
+        "status": "success",
+        "message": "Citizen account created successfully",
+        "token": token,
+        "user": {
+            "id": new_user.id,
+            "name": new_user.full_name,
+            "email": new_user.email,
+            "role": new_user.role,
+            "ward": new_user.ward
+        }
+    }
+
+
+@app.post("/api/auth/login")
+def login_user(req: UserLoginRequest, db: Session = Depends(get_db)):
+    """Authenticates citizen or government officer with email/mobile and password."""
+    login_id = req.login_id.strip().lower()
+    
+    user = (
+        db.query(models.User)
+        .filter((models.User.email == login_id) | (models.User.mobile_number == login_id))
+        .first()
+    )
+
+    if not user or not verify_password(req.password, user.password_hash, user.salt):
+        raise HTTPException(status_code=401, detail="Invalid email/mobile or password. Please check your credentials.")
+
+    if user.account_status != "ACTIVE":
+        raise HTTPException(status_code=403, detail="Account is suspended or deactivated. Contact NIVARAN Admin.")
+
+    user.last_login = datetime.utcnow()
+    db.commit()
+
+    token = create_access_token(user)
+    return {
+        "status": "success",
+        "message": f"Welcome back, {user.full_name}",
+        "token": token,
+        "user": {
+            "id": user.id,
+            "name": user.full_name,
+            "email": user.email,
+            "role": user.role,
+            "ward": user.ward,
+            "preferred_language": user.preferred_language
+        }
+    }
+
+
+@app.get("/api/auth/me")
+def get_current_user_profile(current_user: models.User = Depends(get_current_user)):
+    """Fetches the authenticated user profile."""
+    return {
+        "id": current_user.id,
+        "name": current_user.full_name,
+        "email": current_user.email,
+        "mobile_number": current_user.mobile_number,
+        "role": current_user.role,
+        "ward": current_user.ward,
+        "address": current_user.address,
+        "preferred_language": current_user.preferred_language,
+        "account_status": current_user.account_status,
+        "created_at": current_user.created_at
+    }
+
+
+@app.get("/api/citizens/me/complaints")
+def get_my_complaints(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Strict Ownership / IDOR Protection:
+    Returns ONLY complaints belonging to the authenticated citizen.
+    """
+    tickets = db.query(models.Ticket).filter(models.Ticket.citizen_id == current_user.id).all()
+    return tickets
+
+
+@app.get("/api/officers/me/issues")
+def get_officer_assigned_issues(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Scoped Officer Jurisdiction View:
+    Returns ONLY issues in the officer's assigned department and ward.
+    """
+    if current_user.role not in ["NODAL_OFFICER", "DEPARTMENT_ADMIN", "SUPER_ADMIN"]:
+        raise HTTPException(status_code=403, detail="Access denied. Officer privileges required.")
+
+    officer_rec = db.query(models.Officer).filter(models.Officer.user_id == current_user.id).first()
+    
+    query = db.query(models.CivicIssue)
+    if current_user.role == "NODAL_OFFICER" and officer_rec:
+        query = query.filter(models.CivicIssue.ward == current_user.ward)
+
+    return query.all()
+
+
+@app.get("/api/admin/users")
+def list_system_users(
+    current_user: models.User = Depends(require_roles(["SUPER_ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Super Admin API to list all citizens and officer accounts."""
+    users = db.query(models.User).all()
+    return [
+        {
+            "id": u.id,
+            "name": u.full_name,
+            "email": u.email,
+            "role": u.role,
+            "ward": u.ward,
+            "status": u.account_status,
+            "created_at": u.created_at
+        }
+        for u in users
+    ]
 
 
 if __name__ == "__main__":

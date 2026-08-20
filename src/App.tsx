@@ -8,6 +8,7 @@ import { ContactUsModal } from './components/common/ContactUsModal';
 import { FaqsModal } from './components/common/FaqsModal';
 import { SiteMapModal } from './components/common/SiteMapModal';
 import { SignInModal } from './components/common/SignInModal';
+import { RegisterModal } from './components/common/RegisterModal';
 import { GrievanceForm } from './components/citizen/GrievanceForm';
 import { CitizenTracker } from './components/citizen/CitizenTracker';
 import { KpiCards } from './components/admin/KpiCards';
@@ -123,6 +124,7 @@ export function App() {
   const [isFaqsOpen, setIsFaqsOpen] = useState(false);
   const [isSiteMapOpen, setIsSiteMapOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
   // Admin filter states - PERSISTENT
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(() => {
@@ -345,6 +347,7 @@ export function App() {
         onOpenSiteMap={() => setIsSiteMapOpen(true)}
         onGoHome={handleGoHome}
         onOpenSignIn={() => setIsSignInOpen(true)}
+        onOpenRegister={() => setIsRegisterOpen(true)}
         currentUser={currentUser}
         onSignOut={handleSignOut}
       />
@@ -520,11 +523,26 @@ export function App() {
         isOpen={isSignInOpen}
         onClose={() => setIsSignInOpen(false)}
         isDarkMode={isDarkMode}
+        onOpenRegister={() => setIsRegisterOpen(true)}
         onLoginSuccess={(user) => {
           setCurrentUser(user);
           if (user.role.includes('Nodal') || user.role.includes('Officer') || user.role.includes('Admin')) {
             setActiveTab('admin');
           }
+        }}
+      />
+
+      {/* Citizen Registration Modal */}
+      <RegisterModal
+        isOpen={isRegisterOpen}
+        onClose={() => setIsRegisterOpen(false)}
+        isDarkMode={isDarkMode}
+        onSwitchToSignIn={() => {
+          setIsRegisterOpen(false);
+          setIsSignInOpen(true);
+        }}
+        onRegisterSuccess={(user) => {
+          setCurrentUser(user);
         }}
       />
 
