@@ -39,13 +39,70 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
-  const [complaintText, setComplaintText] = useState('');
-  const [selectedWard, setSelectedWard] = useState(WARDS_LIST[0]);
+  const [complaintText, setComplaintText] = useState<string>(() => {
+    try {
+      return localStorage.getItem('nivaran_draft_query') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [selectedWard, setSelectedWard] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_draft_ward');
+      if (saved && WARDS_LIST.includes(saved)) return saved;
+    } catch {}
+    return WARDS_LIST[0];
+  });
+
   const [triage, setTriage] = useState<TriageResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [submittedTicket, setSubmittedTicket] = useState<Grievance | null>(null);
+
+  const [submittedTicket, setSubmittedTicket] = useState<Grievance | null>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_submitted_ticket');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  });
+
   const [upvotedId, setUpvotedId] = useState<string | null>(null);
+
+  // Persist draft complaint query text as user types
+  useEffect(() => {
+    try {
+      if (complaintText) {
+        localStorage.setItem('nivaran_draft_query', complaintText);
+      } else {
+        localStorage.removeItem('nivaran_draft_query');
+      }
+    } catch (e) {
+      console.warn('Could not save draft query:', e);
+    }
+  }, [complaintText]);
+
+  // Persist selected ward
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_draft_ward', selectedWard);
+    } catch (e) {
+      console.warn('Could not save draft ward:', e);
+    }
+  }, [selectedWard]);
+
+  // Persist submitted ticket confirmation across page refreshes
+  useEffect(() => {
+    try {
+      if (submittedTicket) {
+        localStorage.setItem('nivaran_submitted_ticket', JSON.stringify(submittedTicket));
+      } else {
+        localStorage.removeItem('nivaran_submitted_ticket');
+      }
+    } catch (e) {
+      console.warn('Could not save submitted ticket:', e);
+    }
+  }, [submittedTicket]);
 
   // Debounced real-time AI Triage calculation as user types
   useEffect(() => {
@@ -505,7 +562,17 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubmittedTicket(null);
+                      localStorage.removeItem('nivaran_submitted_ticket');
+                    }}
+                    className="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs transition"
+                  >
+                    + Lodge Another Complaint
+                  </button>
                   <button
                     onClick={() => onTrackTicket(submittedTicket.Complaint_ID)}
                     className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-extrabold text-xs hover:bg-emerald-500 transition shadow-md"

@@ -7,16 +7,22 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies and Build Output
 node_modules
 dist
 dist-ssr
 *.local
 
-# Python
+# Python Cache & Databases
 __pycache__/
 *.py[cod]
-*$py.class
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
 *.db
+*.sqlite
+*.sqlite3
 .env
 venv/
 .venv/

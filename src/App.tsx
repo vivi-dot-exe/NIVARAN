@@ -44,17 +44,60 @@ export function App() {
     return INITIAL_GRIEVANCES;
   });
 
-  const [activeTab, setActiveTab] = useState<'citizen' | 'admin' | 'demo'>('citizen');
-  const [citizenSubTab, setCitizenSubTab] = useState<'form' | 'tracker'>('form');
-  const [trackingTicketId, setTrackingTicketId] = useState<string>('G-1001');
-  
-  // Real-time Multilingual Language State
-  const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
-  const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
+  // User Auth State (Null = Citizen View Mode) - PERSISTENT
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  // User Auth State (Null = Citizen View Mode)
-  const [currentUser, setCurrentUser] = useState<{ name: string; role: string; email: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'citizen' | 'admin' | 'demo'>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_active_tab');
+      if (saved === 'admin' || saved === 'demo' || saved === 'citizen') {
+        return saved;
+      }
+    } catch {}
+    return 'citizen';
+  });
+
+  const [citizenSubTab, setCitizenSubTab] = useState<'form' | 'tracker'>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_citizen_subtab');
+      if (saved === 'form' || saved === 'tracker') return saved;
+    } catch {}
+    return 'form';
+  });
+
+  const [trackingTicketId, setTrackingTicketId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_tracking_ticket_id');
+      if (saved) return saved;
+    } catch {}
+    return 'G-1001';
+  });
+  
+  // Real-time Multilingual Language State - PERSISTENT
+  const [currentLanguage, setCurrentLanguage] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_language') as Language;
+      if (saved && TRANSLATIONS[saved]) return saved;
+    } catch {}
+    return 'en';
+  });
+
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_dark_mode');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return true;
+  });
+
+  const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
 
   // Modal dialog states
   const [isContactOpen, setIsContactOpen] = useState(false);
@@ -62,8 +105,15 @@ export function App() {
   const [isSiteMapOpen, setIsSiteMapOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
 
-  // Admin filter states
-  const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
+  // Admin filter states - PERSISTENT
+  const [selectedClusterId, setSelectedClusterId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('nivaran_selected_cluster') || null;
+    } catch {
+      return null;
+    }
+  });
+
   const [activeActionGrievance, setActiveActionGrievance] = useState<Grievance | null>(null);
 
   const isOfficerLoggedIn = Boolean(currentUser && (currentUser.role.includes('Nodal') || currentUser.role.includes('Officer') || currentUser.role.includes('Admin')));
@@ -76,6 +126,71 @@ export function App() {
       console.warn('Failed to save grievances to localStorage:', e);
     }
   }, [grievances]);
+
+  // PERSISTENCE EFFECTS FOR USER, TABS, LANGUAGE, DARK MODE & CLUSTER
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        localStorage.setItem('nivaran_user', JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem('nivaran_user');
+      }
+    } catch (e) {
+      console.warn('Failed to save user to localStorage:', e);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_active_tab', activeTab);
+    } catch (e) {
+      console.warn('Failed to save activeTab to localStorage:', e);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_citizen_subtab', citizenSubTab);
+    } catch (e) {
+      console.warn('Failed to save citizenSubTab to localStorage:', e);
+    }
+  }, [citizenSubTab]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_tracking_ticket_id', trackingTicketId);
+    } catch (e) {
+      console.warn('Failed to save trackingTicketId to localStorage:', e);
+    }
+  }, [trackingTicketId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_language', currentLanguage);
+    } catch (e) {
+      console.warn('Failed to save language to localStorage:', e);
+    }
+  }, [currentLanguage]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_dark_mode', String(isDarkMode));
+    } catch (e) {
+      console.warn('Failed to save dark mode to localStorage:', e);
+    }
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    try {
+      if (selectedClusterId) {
+        localStorage.setItem('nivaran_selected_cluster', selectedClusterId);
+      } else {
+        localStorage.removeItem('nivaran_selected_cluster');
+      }
+    } catch (e) {
+      console.warn('Failed to save cluster filter to localStorage:', e);
+    }
+  }, [selectedClusterId]);
 
   // Check backend health & sync DB tickets
   useEffect(() => {
@@ -392,7 +507,7 @@ export function App() {
         }}
       />
 
-      {/* Official Government Footer */}
+
       <footer className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t mt-12 text-center text-xs ${
         isDarkMode ? 'border-slate-800 text-slate-500' : 'border-slate-300 text-slate-600'
       }`}>

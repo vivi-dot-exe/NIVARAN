@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Language } from '../../utils/translations';
-import { TRANSLATIONS } from '../../utils/translations';
+import { TRANSLATIONS, INDIAN_OFFICIAL_LANGUAGES } from '../../utils/translations';
 import {
   ShieldCheck,
   UserCheck,
@@ -258,17 +258,19 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Real-time Language Selector Dropdown */}
-            <div className="flex items-center space-x-1 bg-[#5C082A] px-2.5 py-1 rounded border border-[#961247]">
+            {/* Real-time Language Selector Dropdown (All Official Languages of India) */}
+            <div className="flex items-center space-x-1 bg-[#5C082A] px-2 py-1 rounded border border-[#961247]">
               <Globe className="w-3.5 h-3.5 text-amber-300" style={{ width: '14px', height: '14px' }} />
               <select
                 value={currentLanguage}
                 onChange={(e) => onLanguageChange(e.target.value as Language)}
-                className="bg-transparent text-white font-medium text-xs focus:outline-none cursor-pointer"
+                className="bg-transparent text-white font-medium text-xs focus:outline-none cursor-pointer max-w-[140px] sm:max-w-none"
               >
-                <option value="en" className="bg-slate-900 text-white">Language: English</option>
-                <option value="hi" className="bg-slate-900 text-white">भाषा: हिंदी</option>
-                <option value="mr" className="bg-slate-900 text-white">भाषा: मराठी</option>
+                {INDIAN_OFFICIAL_LANGUAGES.map((lang) => (
+                  <option key={lang.code} value={lang.code} className="bg-slate-900 text-white">
+                    {lang.name} ({lang.nativeName})
+                  </option>
+                ))}
               </select>
             </div>
 

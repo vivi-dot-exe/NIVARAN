@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Grievance } from '../../types/grievance';
 import type { Language } from '../../utils/translations';
 import { TRANSLATIONS } from '../../utils/translations';
@@ -30,12 +30,102 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedWard, setSelectedWard] = useState<string>('ALL');
-  const [selectedDept, setSelectedDept] = useState<string>('ALL');
-  const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
-  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
+  const [searchTerm, setSearchTerm] = useState<string>(() => {
+    try {
+      return localStorage.getItem('nivaran_table_search') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [selectedWard, setSelectedWard] = useState<string>(() => {
+    try {
+      return localStorage.getItem('nivaran_table_ward') || 'ALL';
+    } catch {
+      return 'ALL';
+    }
+  });
+
+  const [selectedDept, setSelectedDept] = useState<string>(() => {
+    try {
+      return localStorage.getItem('nivaran_table_dept') || 'ALL';
+    } catch {
+      return 'ALL';
+    }
+  });
+
+  const [selectedPriority, setSelectedPriority] = useState<string>(() => {
+    try {
+      return localStorage.getItem('nivaran_table_priority') || 'ALL';
+    } catch {
+      return 'ALL';
+    }
+  });
+
+  const [selectedStatus, setSelectedStatus] = useState<string>(() => {
+    try {
+      return localStorage.getItem('nivaran_table_status') || 'ALL';
+    } catch {
+      return 'ALL';
+    }
+  });
+
+  const [showDuplicatesOnly, setShowDuplicatesOnly] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('nivaran_table_duplicates') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Save admin search term and filter states
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_table_search', searchTerm);
+    } catch (e) {
+      console.warn('Failed to save search term:', e);
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_table_ward', selectedWard);
+    } catch (e) {
+      console.warn('Failed to save table ward filter:', e);
+    }
+  }, [selectedWard]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_table_dept', selectedDept);
+    } catch (e) {
+      console.warn('Failed to save table department filter:', e);
+    }
+  }, [selectedDept]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_table_priority', selectedPriority);
+    } catch (e) {
+      console.warn('Failed to save table priority filter:', e);
+    }
+  }, [selectedPriority]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_table_status', selectedStatus);
+    } catch (e) {
+      console.warn('Failed to save table status filter:', e);
+    }
+  }, [selectedStatus]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nivaran_table_duplicates', String(showDuplicatesOnly));
+    } catch (e) {
+      console.warn('Failed to save duplicates filter:', e);
+    }
+  }, [showDuplicatesOnly]);
 
   // Filtering logic
   const filteredData = grievances.filter((g) => {

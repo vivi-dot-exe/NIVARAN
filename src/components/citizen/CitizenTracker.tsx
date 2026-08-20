@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Grievance } from '../../types/grievance';
 import type { Language } from '../../utils/translations';
 import { TRANSLATIONS } from '../../utils/translations';
@@ -27,15 +27,38 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
-  const [searchId, setSearchId] = useState(initialTicketId);
-  const [activeTicket, setActiveTicket] = useState<Grievance | null>(
-    grievances.find((g) => g.Complaint_ID.toUpperCase() === initialTicketId.toUpperCase()) || grievances[0] || null
-  );
+  const [searchId, setSearchId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_tracking_ticket_id');
+      if (saved) return saved;
+    } catch {}
+    return initialTicketId;
+  });
+
+  const [activeTicket, setActiveTicket] = useState<Grievance | null>(() => {
+    const query = (localStorage.getItem('nivaran_tracking_ticket_id') || initialTicketId).trim().toLowerCase();
+    return grievances.find((g) => g.Complaint_ID.toLowerCase() === query) || grievances[0] || null;
+  });
+
+  // Sync active ticket when grievances or initialTicketId prop updates
+  useEffect(() => {
+    if (initialTicketId) {
+      setSearchId(initialTicketId);
+      const found = grievances.find((g) => g.Complaint_ID.toLowerCase() === initialTicketId.toLowerCase().trim());
+      if (found) setActiveTicket(found);
+    }
+  }, [initialTicketId, grievances]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    const query = searchId.trim();
+    try {
+      localStorage.setItem('nivaran_tracking_ticket_id', query);
+    } catch (err) {
+      console.warn('Failed to save tracking ticket ID:', err);
+    }
     const found = grievances.find(
-      (g) => g.Complaint_ID.toLowerCase() === searchId.toLowerCase().trim()
+      (g) => g.Complaint_ID.toLowerCase() === query.toLowerCase()
     );
     if (found) {
       setActiveTicket(found);
