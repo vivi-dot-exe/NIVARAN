@@ -130,20 +130,32 @@ export const Header: React.FC<HeaderProps> = ({
       }`}>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           
-          {/* Ashoka Lion Capital Emblem & Department Title */}
+          {/* Flag of India (Tiranga) & Department Title */}
           <div className="flex items-center space-x-4">
-            <div className="w-14 h-16 shrink-0 flex flex-col items-center justify-center p-1 bg-amber-50/50 rounded-xl border border-amber-200/40" style={{ width: '56px', height: '64px', minWidth: '56px' }}>
-              <svg 
-                viewBox="0 0 100 120" 
-                className="w-10 h-12 text-amber-800 fill-current" 
-                style={{ width: '40px', height: '48px', minWidth: '40px', minHeight: '48px', maxWidth: '40px', maxHeight: '48px' }}
-              >
-                <path d="M50 5 C55 15, 65 15, 70 5 C75 25, 80 40, 75 60 C70 80, 60 90, 50 115 C40 90, 30 80, 25 60 C20 40, 25 25, 30 5 C35 15, 45 15, 50 5 Z" stroke="currentColor" strokeWidth="2.5" fill="none" />
-                <circle cx="50" cy="45" r="16" stroke="currentColor" strokeWidth="3" fill="none" />
-                <circle cx="50" cy="45" r="4" fill="currentColor" />
-                <path d="M 50 29 L 50 61 M 34 45 L 66 45 M 39 34 L 61 56 M 39 56 L 61 34" stroke="currentColor" strokeWidth="1.5" />
-                <text x="50" y="108" textAnchor="middle" fontSize="10" fontWeight="extrabold" fill="#7A0C38">सत्यमेव जयते</text>
-              </svg>
+            <div className="w-14 h-10 shrink-0 rounded-lg overflow-hidden border border-slate-300/40 shadow-md flex flex-col items-stretch relative" style={{ width: '56px', height: '38px', minWidth: '56px' }}>
+              {/* Saffron Band */}
+              <div className="h-1/3 bg-[#FF9933] w-full" />
+              {/* White Band with Ashoka Chakra */}
+              <div className="h-1/3 bg-white w-full flex items-center justify-center relative">
+                <svg viewBox="0 0 100 100" className="w-3.5 h-3.5 text-[#000080]" style={{ width: '13px', height: '13px' }}>
+                  <circle cx="50" cy="50" r="45" stroke="#000080" strokeWidth="6" fill="none" />
+                  <circle cx="50" cy="50" r="8" fill="#000080" />
+                  {/* 24 Spokes of Ashoka Chakra */}
+                  {Array.from({ length: 24 }).map((_, i) => (
+                    <line
+                      key={i}
+                      x1="50"
+                      y1="50"
+                      x2={50 + 45 * Math.cos((i * 15 * Math.PI) / 180)}
+                      y2={50 + 45 * Math.sin((i * 15 * Math.PI) / 180)}
+                      stroke="#000080"
+                      strokeWidth="3"
+                    />
+                  ))}
+                </svg>
+              </div>
+              {/* Green Band */}
+              <div className="h-1/3 bg-[#138808] w-full" />
             </div>
 
             <div>
