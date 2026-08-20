@@ -91,7 +91,21 @@ export function App() {
             setGrievances((prev) => {
               const prevMap = new Map(prev.map((item) => [item.Complaint_ID, item]));
               apiTickets.forEach((t) => {
-                prevMap.set(t.Complaint_ID, t);
+                const existing = prevMap.get(t.Complaint_ID);
+                if (existing) {
+                  prevMap.set(t.Complaint_ID, {
+                    ...existing,
+                    ...t,
+                    Cluster_X: existing.Cluster_X ?? t.Cluster_X,
+                    Cluster_Y: existing.Cluster_Y ?? t.Cluster_Y,
+                    Latitude: existing.Latitude ?? t.Latitude,
+                    Longitude: existing.Longitude ?? t.Longitude,
+                    Duplicate_Group: existing.Duplicate_Group ?? t.Duplicate_Group,
+                    Upvotes: Math.max(existing.Upvotes, t.Upvotes)
+                  });
+                } else {
+                  prevMap.set(t.Complaint_ID, t);
+                }
               });
               return Array.from(prevMap.values());
             });

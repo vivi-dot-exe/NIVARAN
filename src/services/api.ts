@@ -18,6 +18,32 @@ export interface AnalyzeResponse {
   confidence: number;
 }
 
+const DEPT_CENTROIDS: Record<string, { cx: number; cy: number }> = {
+  'Water Supply': { cx: 18.4, cy: 72.1 },
+  'Roads & Infra': { cx: 62.8, cy: 33.8 },
+  'Sanitation & Waste': { cx: -45.0, cy: 80.0 },
+  'Electricity': { cx: 85.0, cy: -50.0 },
+  'Public Distribution': { cx: -75.0, cy: -45.0 },
+  'Public Health & Healthcare': { cx: -20.0, cy: -60.0 }
+};
+
+const WARD_BASE_COORDS: Record<string, { lat: number; lng: number }> = {
+  'Ward 4 - Andheri West': { lat: 19.1197, lng: 72.8464 },
+  'Ward 7 - Bandra East': { lat: 19.0620, lng: 72.8480 },
+  'Ward 2 - Malad West': { lat: 19.1860, lng: 72.8485 },
+  'Ward 9 - Dadar West': { lat: 19.0178, lng: 72.8478 },
+  'Ward 12 - Kurla East': { lat: 19.0650, lng: 72.8790 }
+};
+
+function getStableHashOffset(id: string, salt: number, spread: number): number {
+  let hash = salt;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash << 5) - hash + id.charCodeAt(i);
+    hash |= 0;
+  }
+  return (((Math.abs(hash) % 1000) / 1000) - 0.5) * spread;
+}
+
 // Convert Backend Ticket format to Frontend Grievance model
 export function mapBackendTicketToGrievance(bt: BackendTicket): Grievance {
   let priority: Grievance['Priority'] = 'Low';
@@ -29,10 +55,20 @@ export function mapBackendTicketToGrievance(bt: BackendTicket): Grievance {
   let dept: Grievance['Department'] = 'Sanitation & Waste';
   const cat = (bt.category || '').toLowerCase();
   if (cat.includes('water')) dept = 'Water Supply';
-  else if (cat.includes('road') || cat.includes('infra')) dept = 'Roads & Infra';
-  else if (cat.includes('sanitation') || cat.includes('garbage')) dept = 'Sanitation & Waste';
-  else if (cat.includes('electric') || cat.includes('power')) dept = 'Electricity';
-  else if (cat.includes('health') || cat.includes('public') || cat.includes('pension')) dept = 'Public Distribution';
+  else if (cat.includes('road') || cat.includes('infra') || cat.includes('pothole')) dept = 'Roads & Infra';
+  else if (cat.includes('sanitation') || cat.includes('garbage') || cat.includes('drain')) dept = 'Sanitation & Waste';
+  else if (cat.includes('electric') || cat.includes('power') || cat.includes('transformer')) dept = 'Electricity';
+  else if (cat.includes('health') || cat.includes('hospital')) dept = 'Public Health & Healthcare';
+  else if (cat.includes('pension') || cat.includes('ration') || cat.includes('distribution')) dept = 'Public Distribution';
+
+  const ward = bt.location || 'Ward 4 - Andheri West';
+  const baseWard = WARD_BASE_COORDS[ward] || { lat: 19.1197, lng: 72.8464 };
+  const baseCluster = DEPT_CENTROIDS[dept] || { cx: 0, cy: 0 };
+
+  const clusterX = Number((baseCluster.cx + getStableHashOffset(bt.id, 17, 18)).toFixed(2));
+  const clusterY = Number((baseCluster.cy + getStableHashOffset(bt.id, 31, 18)).toFixed(2));
+  const lat = Number((baseWard.lat + getStableHashOffset(bt.id, 47, 0.015)).toFixed(6));
+  const lng = Number((baseWard.lng + getStableHashOffset(bt.id, 53, 0.015)).toFixed(6));
 
   return {
     Complaint_ID: bt.id,
@@ -46,15 +82,15 @@ export function mapBackendTicketToGrievance(bt: BackendTicket): Grievance {
     Priority_Score: bt.priority_score,
     Priority: priority,
     Duplicate_Group: null,
-    Ward: bt.location || 'Ward 4 - Andheri West',
+    Ward: ward,
     Status: (bt.status as Grievance['Status']) || 'Pending',
     Date_Submitted: bt.created_at || new Date().toISOString(),
-    Latitude: 19.119 + (Math.random() - 0.5) * 0.05,
-    Longitude: 72.846 + (Math.random() - 0.5) * 0.05,
+    Latitude: lat,
+    Longitude: lng,
     Upvotes: 1,
     Assigned_Officer: `Er. ${dept.split(' ')[0]} Officer`,
-    Cluster_X: Math.random() * 140 - 70,
-    Cluster_Y: Math.random() * 140 - 70
+    Cluster_X: clusterX,
+    Cluster_Y: clusterY
   };
 }
 

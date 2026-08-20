@@ -24,14 +24,25 @@ interface BerTopicScatterProps {
   currentLanguage?: Language;
 }
 
+const DEPT_CENTROIDS: Record<string, { cx: number; cy: number }> = {
+  'Water Supply': { cx: 18.4, cy: 72.1 },
+  'Roads & Infra': { cx: 62.8, cy: 33.8 },
+  'Sanitation & Waste': { cx: -45.0, cy: 80.0 },
+  'Electricity': { cx: 85.0, cy: -50.0 },
+  'Public Distribution': { cx: -75.0, cy: -45.0 },
+  'Public Health & Healthcare': { cx: -20.0, cy: -60.0 }
+};
+
 // Deterministic stable coordinate generator to prevent dot jittering
-function getStableCoord(id: string, salt: number): number {
+function getStableCoord(id: string, salt: number, dept: string, isX: boolean): number {
   let hash = salt;
   for (let i = 0; i < id.length; i++) {
     hash = (hash << 5) - hash + id.charCodeAt(i);
     hash |= 0;
   }
-  return (Math.abs(hash) % 140) - 70;
+  const base = DEPT_CENTROIDS[dept] || { cx: 0, cy: 0 };
+  const offset = (((Math.abs(hash) % 1000) / 1000) - 0.5) * 18;
+  return Number(((isX ? base.cx : base.cy) + offset).toFixed(2));
 }
 
 export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
@@ -46,8 +57,8 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
   // Stable memoized scatter coordinates derived from ticket metadata
   const scatterData = useMemo(() => {
     return grievances.map((g) => {
-      const x = g.Cluster_X ?? getStableCoord(g.Complaint_ID, 17);
-      const y = g.Cluster_Y ?? getStableCoord(g.Complaint_ID, 31);
+      const x = g.Cluster_X ?? getStableCoord(g.Complaint_ID, 17, g.Department, true);
+      const y = g.Cluster_Y ?? getStableCoord(g.Complaint_ID, 31, g.Department, false);
       return {
         x,
         y,
@@ -196,6 +207,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
             <Scatter
               name="Grievances"
               data={scatterData}
+              isAnimationActive={false}
               onClick={(data) => {
                 const g = (data as unknown as { grievance: Grievance }).grievance;
                 if (g && g.Duplicate_Group) {

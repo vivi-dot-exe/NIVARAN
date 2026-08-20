@@ -133,6 +133,28 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
     setIsSubmitting(true);
     setTimeout(() => {
       const newId = `G-${Math.floor(1000 + Math.random() * 9000)}`;
+      
+      const wardCoords: Record<string, { lat: number; lng: number }> = {
+        'Ward 4 - Andheri West': { lat: 19.1197, lng: 72.8464 },
+        'Ward 7 - Bandra East': { lat: 19.0620, lng: 72.8480 },
+        'Ward 2 - Malad West': { lat: 19.1860, lng: 72.8485 },
+        'Ward 9 - Dadar West': { lat: 19.0178, lng: 72.8478 },
+        'Ward 12 - Kurla East': { lat: 19.0650, lng: 72.8790 }
+      };
+
+      const deptCentroids: Record<string, { cx: number; cy: number }> = {
+        'Water Supply': { cx: 18.4, cy: 72.1 },
+        'Roads & Infra': { cx: 62.8, cy: 33.8 },
+        'Sanitation & Waste': { cx: -45.0, cy: 80.0 },
+        'Electricity': { cx: 85.0, cy: -50.0 },
+        'Public Distribution': { cx: -75.0, cy: -45.0 },
+        'Public Health & Healthcare': { cx: -20.0, cy: -60.0 }
+      };
+
+      const baseWard = wardCoords[selectedWard] || { lat: 19.1197, lng: 72.8464 };
+      const baseCentroid = deptCentroids[triage.department] || { cx: 0, cy: 0 };
+      const offsetFactor = (Math.random() - 0.5);
+
       const newTicket: Grievance = {
         Complaint_ID: newId,
         Complaint: complaintText.trim(),
@@ -148,10 +170,12 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
         Ward: selectedWard,
         Status: 'Pending',
         Date_Submitted: new Date().toISOString(),
-        Latitude: 19.119 + (Math.random() - 0.5) * 0.05,
-        Longitude: 72.846 + (Math.random() - 0.5) * 0.05,
+        Latitude: Number((baseWard.lat + offsetFactor * 0.01).toFixed(6)),
+        Longitude: Number((baseWard.lng + offsetFactor * 0.01).toFixed(6)),
         Upvotes: 1,
-        Assigned_Officer: `Er. ${triage.department.split(' ')[0]} Nodal Officer`
+        Assigned_Officer: `Er. ${triage.department.split(' ')[0]} Nodal Officer`,
+        Cluster_X: Number((baseCentroid.cx + offsetFactor * 12).toFixed(2)),
+        Cluster_Y: Number((baseCentroid.cy + offsetFactor * 12).toFixed(2))
       };
 
       onAddGrievance(newTicket);
