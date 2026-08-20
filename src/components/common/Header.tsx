@@ -130,8 +130,37 @@ export const Header: React.FC<HeaderProps> = ({
       }`}>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           
-          {/* Flag of India (Tiranga) & Department Title */}
-          <div className="flex items-center space-x-4">
+          {/* OFFICIAL NIVARAN BRAND BADGE (LEFT) */}
+          <div className="flex items-center space-x-3">
+            <div className="bg-[#1E3A8A] text-white p-3.5 rounded-xl border-2 border-blue-400/40 shadow-md text-center min-w-[240px]">
+              <div className="flex items-center justify-center space-x-2">
+                <ShieldCheck className="w-6 h-6 text-amber-400" style={{ width: '24px', height: '24px' }} />
+                <span className="text-2xl font-black tracking-widest text-white font-mono">
+                  NIVARAN
+                </span>
+              </div>
+              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wider mt-0.5">
+                {t.centralizedSystem}
+              </p>
+            </div>
+          </div>
+
+          {/* Flag of India (Tiranga) & Department Title (RIGHT) */}
+          <div className="flex items-center space-x-4 text-right md:text-right">
+            <div>
+              <span className="text-xs font-bold block text-[#7A0C38]">
+                प्रशासनिक सुधार और लोक शिकायत विभाग
+              </span>
+              <h1 className={`text-base sm:text-lg font-extrabold uppercase tracking-tight font-heading ${
+                isDarkMode ? 'text-white' : 'text-slate-900'
+              }`}>
+                {t.govTitle}
+              </h1>
+              <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                {t.govSub}
+              </p>
+            </div>
+
             <div className="w-14 h-10 shrink-0 rounded-lg overflow-hidden border border-slate-300/40 shadow-md flex flex-col items-stretch relative" style={{ width: '56px', height: '38px', minWidth: '56px' }}>
               {/* Saffron Band */}
               <div className="h-1/3 bg-[#FF9933] w-full" />
@@ -156,35 +185,6 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               {/* Green Band */}
               <div className="h-1/3 bg-[#138808] w-full" />
-            </div>
-
-            <div>
-              <span className="text-xs font-bold block text-[#7A0C38]">
-                प्रशासनिक सुधार और लोक शिकायत विभाग
-              </span>
-              <h1 className={`text-base sm:text-lg font-extrabold uppercase tracking-tight font-heading ${
-                isDarkMode ? 'text-white' : 'text-slate-900'
-              }`}>
-                {t.govTitle}
-              </h1>
-              <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                {t.govSub}
-              </p>
-            </div>
-          </div>
-
-          {/* OFFICIAL NIVARAN BRAND BADGE */}
-          <div className="flex items-center space-x-3">
-            <div className="bg-[#1E3A8A] text-white p-3.5 rounded-xl border-2 border-blue-400/40 shadow-md text-center min-w-[240px]">
-              <div className="flex items-center justify-center space-x-2">
-                <ShieldCheck className="w-6 h-6 text-amber-400" style={{ width: '24px', height: '24px' }} />
-                <span className="text-2xl font-black tracking-widest text-white font-mono">
-                  NIVARAN
-                </span>
-              </div>
-              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wider mt-0.5">
-                {t.centralizedSystem}
-              </p>
             </div>
           </div>
 
