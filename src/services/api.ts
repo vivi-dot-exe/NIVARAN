@@ -220,4 +220,31 @@ export async function overrideRoutingApi(
   return res.json();
 }
 
+export async function decomposeGrievanceApi(
+  text: string,
+  selectedCategory?: string,
+  ward?: string
+): Promise<import('../types/grievance').ResolutionPlan> {
+  const res = await fetch(`${API_BASE_URL}/api/ai/decompose`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, selected_category: selectedCategory, ward })
+  });
+  if (!res.ok) throw new Error('Failed to decompose grievance in FastAPI backend');
+  return res.json();
+}
+
+export async function reviewResolutionPlanApi(
+  issueId: string,
+  planOverride: Record<string, unknown>
+): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/civic-issues/${issueId}/review-plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(planOverride)
+  });
+  if (!res.ok) throw new Error('Failed to review resolution plan in FastAPI backend');
+  return res.json();
+}
+
 

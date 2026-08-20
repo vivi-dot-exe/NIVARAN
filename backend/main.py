@@ -1,4 +1,5 @@
 import io
+import json
 import os
 from datetime import datetime
 from typing import List, Optional
@@ -21,6 +22,7 @@ from ml_engine import (
     generate_issue_title,
     run_batch_clustering,
     route_grievance,
+    analyze_and_decompose_grievance,
 )
 
 # Initialize database tables
@@ -185,10 +187,12 @@ def attach_or_create_civic_issue(db: Session, ticket: models.Ticket) -> models.C
     else:
         # Create a new Civic Issue
         issue_id = f"CI-{uuid.uuid4().hex[:4].upper()}"
-        title = generate_issue_title(ticket.category, ticket.text, ticket.location)
         
-        # Run AI Routing Engine
-        r_info = route_grievance(ticket.text, ticket.category, ticket.location)
+        # Run AI Multi-Agency Understanding & Decomposition Engine
+        decomp = analyze_and_decompose_grievance(ticket.text, ticket.location, ticket.category)
+        r_info = decomp["routing"]
+
+        title = decomp["primary_issue_title"] if decomp.get("primary_issue_title") else generate_issue_title(ticket.category, ticket.text, ticket.location)
 
         # Calculate initial severity/urgency/scope from priority_score
         severity = 5 if ticket.priority_score >= 85 else 4 if ticket.priority_score >= 70 else 3
@@ -227,8 +231,35 @@ def attach_or_create_civic_issue(db: Session, ticket: models.Ticket) -> models.C
             category_mismatch=r_info["category_mismatch"],
             citizen_selected_category=ticket.category,
             cluster_confidence=0.88,
+            is_multi_agency=decomp["is_multi_agency"],
+            primary_issue_title=decomp["primary_issue_title"],
+            root_cause=decomp["root_cause"],
+            affected_infrastructure_json=json.dumps(decomp["affected_infrastructure"]),
+            sub_issues_json=json.dumps(decomp["sub_issues"]),
+            dependencies_json=json.dumps(decomp["dependencies"]),
+            resolution_plan_json=json.dumps(decomp),
+            decomposition_confidence=decomp["overall_confidence"]
         )
         db.add(new_issue)
+        db.commit()
+
+        # Add SubIssue records into database table
+        for s in decomp["sub_issues"]:
+            sub_rec = models.SubIssue(
+                id=s["id"],
+                civic_issue_id=new_issue.id,
+                title=s["title"],
+                description=s.get("description", ""),
+                category=s["category"],
+                responsible_authority=s["responsible_authority"],
+                responsible_department=s["responsible_department"],
+                assigned_officer=s.get("assigned_officer", ""),
+                confidence=s.get("confidence", 90),
+                required_action=s.get("required_action", ""),
+                dependencies_json=json.dumps(s.get("dependencies", [])),
+                status=s.get("status", "Pending")
+            )
+            db.add(sub_rec)
         db.commit()
         db.refresh(new_issue)
 
@@ -242,6 +273,10 @@ def attach_or_create_civic_issue(db: Session, ticket: models.Ticket) -> models.C
         ticket.requires_human_review = r_info["requires_human_review"]
         ticket.category_mismatch = r_info["category_mismatch"]
         ticket.citizen_selected_category = ticket.category
+        ticket.is_multi_agency = decomp["is_multi_agency"]
+        ticket.primary_issue_title = decomp["primary_issue_title"]
+        ticket.root_cause = decomp["root_cause"]
+        ticket.resolution_plan_json = json.dumps(decomp)
         db.commit()
         return new_issue
 
@@ -579,6 +614,48 @@ def get_authorities_directory():
             ]
         }
     ]
+
+
+# MULTI-AGENCY DECOMPOSITION & RESOLUTION PLAN ENDPOINTS
+@app.post("/api/ai/decompose")
+def decompose_grievance_endpoint(req: RoutingAnalyzeRequest):
+    """Analyzes a raw complaint and returns real-time single vs multi-agency decomposition and dependency graph."""
+    return analyze_and_decompose_grievance(req.text, req.ward or "Ward 4 - Andheri West", req.selected_category)
+
+
+@app.get("/api/civic-issues/{issue_id}/resolution-plan")
+def get_resolution_plan(issue_id: str, db: Session = Depends(get_db)):
+    """Fetches the structured multi-agency resolution plan payload for a Civic Issue."""
+    civic_issue = db.query(models.CivicIssue).filter(models.CivicIssue.id == issue_id).first()
+    if not civic_issue:
+        raise HTTPException(status_code=404, detail="Civic Issue not found")
+
+    if civic_issue.resolution_plan_json:
+        return json.loads(civic_issue.resolution_plan_json)
+
+    # Fallback regeneration if missing
+    return analyze_and_decompose_grievance(civic_issue.issue_description, civic_issue.ward, civic_issue.category)
+
+
+@app.post("/api/civic-issues/{issue_id}/review-plan")
+def review_resolution_plan(issue_id: str, plan_override: dict, db: Session = Depends(get_db)):
+    """Allows a nodal officer to confirm, edit, or override the sub-issues and dependency graph for a Civic Issue."""
+    civic_issue = db.query(models.CivicIssue).filter(models.CivicIssue.id == issue_id).first()
+    if not civic_issue:
+        raise HTTPException(status_code=404, detail="Civic Issue not found")
+
+    civic_issue.resolution_plan_json = json.dumps(plan_override)
+    civic_issue.is_multi_agency = plan_override.get("is_multi_agency", civic_issue.is_multi_agency)
+    if "sub_issues" in plan_override:
+        civic_issue.sub_issues_json = json.dumps(plan_override["sub_issues"])
+    if "dependencies" in plan_override:
+        civic_issue.dependencies_json = json.dumps(plan_override["dependencies"])
+    civic_issue.requires_human_review = False
+    civic_issue.manual_override = True
+    civic_issue.override_reason = plan_override.get("officer_review_note", "Officer approved multi-agency resolution plan")
+
+    db.commit()
+    return {"status": "success", "message": f"Resolution plan updated for {issue_id}"}
 
 
 if __name__ == "__main__":

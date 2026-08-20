@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Grievance } from '../../types/grievance';
 import type { Language } from '../../utils/translations';
 import { TRANSLATIONS } from '../../utils/translations';
+import { ResolutionPlanCard } from '../common/ResolutionPlanCard';
 import {
   Search,
   Clock,
@@ -300,6 +301,11 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                     </p>
                   </div>
                 </div>
+
+                {/* MULTI-AGENCY DECOMPOSITION RESOLUTION PLAN CARD */}
+                {activeTicket.resolution_plan && (
+                  <ResolutionPlanCard plan={activeTicket.resolution_plan} isDarkMode={isDarkMode} />
+                )}
 
                 <div className={`p-3 rounded-xl border flex items-center justify-between ${
                   isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'

@@ -48,6 +48,39 @@ export interface RoutingAuditLog {
   timestamp: string;
 }
 
+export interface SubIssue {
+  id: string; // e.g. SUB-001
+  title: string;
+  description?: string;
+  category: DepartmentType | string;
+  responsible_authority: string;
+  responsible_department: string;
+  assigned_officer?: string;
+  confidence: number;
+  required_action: string;
+  dependencies: string[]; // List of prerequisite SubIssue IDs (e.g. ["SUB-001"])
+  status: 'Pending' | 'In Progress' | 'Resolved' | 'Blocked' | string;
+}
+
+export interface DependencyLink {
+  from: string; // Prerequisite SubIssue ID
+  to: string;   // Dependent SubIssue ID
+  type?: 'prerequisite' | string;
+  reason: string;
+}
+
+export interface ResolutionPlan {
+  is_multi_agency: boolean;
+  primary_issue_title: string;
+  root_cause: string;
+  affected_infrastructure: string[];
+  sub_issues: SubIssue[];
+  dependencies: DependencyLink[];
+  overall_confidence: number;
+  explainability: string[];
+  routing?: RoutingResult;
+}
+
 export interface Grievance {
   Complaint_ID: string;
   Complaint: string;
@@ -80,6 +113,10 @@ export interface Grievance {
   citizen_selected_category?: string;
   manual_override?: boolean;
   override_reason?: string;
+  is_multi_agency?: boolean;
+  primary_issue_title?: string;
+  root_cause?: string;
+  resolution_plan?: ResolutionPlan;
 }
 
 export interface CivicIssue {
@@ -115,6 +152,14 @@ export interface CivicIssue {
   override_reason?: string;
   overridden_by?: string;
   override_timestamp?: string;
+  is_multi_agency?: boolean;
+  primary_issue_title?: string;
+  root_cause?: string;
+  affected_infrastructure?: string[];
+  sub_issues?: SubIssue[];
+  dependencies?: DependencyLink[];
+  resolution_plan?: ResolutionPlan;
+  decomposition_confidence?: number;
   cluster_confidence: number;
   resolved_at?: string | null;
   tickets?: Grievance[];
@@ -153,4 +198,5 @@ export interface TriageResult {
   duplicateMatch?: Grievance | null;
   matchedCivicIssue?: CivicIssue | null;
   routing?: RoutingResult;
+  resolution_plan?: ResolutionPlan;
 }

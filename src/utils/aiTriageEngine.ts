@@ -266,6 +266,213 @@ export function performAiTriage(
     citizen_selected_category: selectedCategory
   };
 
+  // MULTI-AGENCY DECOMPOSITION CALCULATION
+  const hasWaterPipe = /pipe|pipeline|water leak|burst|gushing|water main/i.test(lower);
+  const hasRoadDamage = /pothole|road|asphalt|caved|collaps|tar|street damage|crater/i.test(lower);
+  const hasTree = /tree|branch|trunk|fallen tree/i.test(lower);
+  const hasElec = /wire|cable|transformer|pole|electric|power|blackout|spark/i.test(lower);
+  const hasSewer = /sewer|gutter|drain|overflow|sludge|manhole/i.test(lower);
+
+  let isMultiAgency = false;
+  let primaryIssueTitle = `${department} Civic Issue`;
+  let rootCause = `Direct ${department} operational defect`;
+  let affectedInfra: string[] = [`${department} Infrastructure`];
+  let subIssues: import('../types/grievance').SubIssue[] = [];
+  let dependencies: import('../types/grievance').DependencyLink[] = [];
+  let explainability: string[] = [];
+
+  const cleanWard = ward ? ward.split(' - ')[0] : 'Ward';
+
+  if (hasWaterPipe && hasRoadDamage) {
+    isMultiAgency = true;
+    primaryIssueTitle = 'Road surface collapse caused by underground water pipeline leak';
+    rootCause = 'Underground main water pipeline leakage & sub-soil erosion';
+    affectedInfra = ['Water Pipeline Infrastructure', 'Municipal Road Surface', 'Traffic Transit Corridor'];
+
+    subIssues = [
+      {
+        id: 'SUB-001',
+        title: 'Repair underground water pipeline leakage',
+        description: 'Isolate damaged water main section and seal/replace pipe.',
+        category: 'Water Supply',
+        responsible_authority: 'Maharashtra Water Supply & Sewerage Board',
+        responsible_department: 'Water Maintenance Division',
+        assigned_officer: `${cleanWard} Executive Engineer (Er. Vikram Desai)`,
+        confidence: 92,
+        required_action: 'Repair water main pipeline leak & stop sub-soil erosion',
+        dependencies: [],
+        status: 'Pending'
+      },
+      {
+        id: 'SUB-002',
+        title: 'Road surface resurfacing & crater repair',
+        description: 'Backfill eroded sub-grade and lay fresh asphalt tar layer.',
+        category: 'Roads & Infra',
+        responsible_authority: 'Municipal Corporation of Greater Mumbai',
+        responsible_department: 'Municipal Roads Department',
+        assigned_officer: `${cleanWard} Roads Nodal Officer (Er. Rajesh Sharma)`,
+        confidence: 95,
+        required_action: 'Resurface caved-in road asphalt',
+        dependencies: ['SUB-001'],
+        status: 'Blocked'
+      }
+    ];
+
+    dependencies = [
+      {
+        from: 'SUB-001',
+        to: 'SUB-002',
+        type: 'prerequisite',
+        reason: 'Road resurfacing can only begin after the underlying water pipe leak is sealed to prevent repeated washouts.'
+      }
+    ];
+
+    explainability = [
+      '• Multi-Agency Trigger: Water Pipeline Repair + Municipal Road Restoration.',
+      '• Root Cause: Underground water pipe burst caused sub-soil erosion resulting in road collapse.',
+      '• Operational Dependency: Pipeline repair (SUB-001) MUST complete before road resurfacing (SUB-002) unlocks.'
+    ];
+
+  } else if (hasTree && (hasElec || hasRoadDamage)) {
+    isMultiAgency = true;
+    primaryIssueTitle = 'Fallen tree damaging electrical cables and blocking traffic';
+    rootCause = 'Heavy storm uprooted mature roadside tree onto overhead electrical lines';
+    affectedInfra = ['High Voltage Power Lines', 'Road Transit Corridor', 'Urban Forestry'];
+
+    subIssues = [
+      {
+        id: 'SUB-001',
+        title: 'Isolate high voltage cables & clear electrical hazard',
+        description: 'De-energize snagged overhead power lines to allow tree cutting.',
+        category: 'Electricity',
+        responsible_authority: 'BEST Electricity & Power Supply Board',
+        responsible_department: 'High Voltage Grid Operations',
+        assigned_officer: `${cleanWard} Assistant Electrical Engineer (Er. Amit Verma)`,
+        confidence: 94,
+        required_action: 'Safely isolate snagged power cables',
+        dependencies: [],
+        status: 'Pending'
+      },
+      {
+        id: 'SUB-002',
+        title: 'Cut and clear fallen tree trunk',
+        description: 'Use chainsaw teams to clear fallen trunk and branches.',
+        category: 'Sanitation & Waste',
+        responsible_authority: 'Municipal Corporation of Greater Mumbai',
+        responsible_department: 'Parks & Garden Cell',
+        assigned_officer: `${cleanWard} Chief Sanitation Inspector (Shri Suresh Patil)`,
+        confidence: 90,
+        required_action: 'Remove fallen tree obstruction from roadway',
+        dependencies: ['SUB-001'],
+        status: 'Blocked'
+      }
+    ];
+
+    dependencies = [
+      {
+        from: 'SUB-001',
+        to: 'SUB-002',
+        type: 'prerequisite',
+        reason: 'Tree cutting crew cannot operate until BEST isolates live high-voltage power lines.'
+      }
+    ];
+
+    explainability = [
+      '• Multi-Agency Trigger: BEST Electricity Board + Municipal Parks Cell.',
+      '• Root Cause: Uprooted tree snagged live high-voltage power lines.',
+      '• Safety Dependency: Power isolation (SUB-001) is a mandatory safety prerequisite before tree removal (SUB-002).'
+    ];
+
+  } else if (hasSewer && hasRoadDamage) {
+    isMultiAgency = true;
+    primaryIssueTitle = 'Sewer line blockage causing sewage flooding and road damage';
+    rootCause = 'Main arterial sewer pipe blockage causing toxic effluent overflow';
+    affectedInfra = ['Underground Drainage System', 'Municipal Road Asphalt'];
+
+    subIssues = [
+      {
+        id: 'SUB-001',
+        title: 'De-clog main sewer line & drain toxic effluent',
+        description: 'Deploy suction jetting machines to clear drainage blockage.',
+        category: 'Sanitation & Waste',
+        responsible_authority: 'Municipal Corporation of Greater Mumbai',
+        responsible_department: 'Storm Water Drainage & Sewerage Division',
+        assigned_officer: `${cleanWard} Chief Sanitation Inspector (Shri Suresh Patil)`,
+        confidence: 91,
+        required_action: 'De-clog blocked sewer line and drain effluent',
+        dependencies: [],
+        status: 'Pending'
+      },
+      {
+        id: 'SUB-002',
+        title: 'Disinfect road surface & repair damaged asphalt',
+        description: 'Spray chemical disinfectant and patch eroded road sections.',
+        category: 'Roads & Infra',
+        responsible_authority: 'Municipal Corporation of Greater Mumbai',
+        responsible_department: 'Municipal Roads Department',
+        assigned_officer: `${cleanWard} Roads Nodal Officer (Er. Rajesh Sharma)`,
+        confidence: 88,
+        required_action: 'Sanitize area and repair damaged pavement',
+        dependencies: ['SUB-001'],
+        status: 'Blocked'
+      }
+    ];
+
+    dependencies = [
+      {
+        from: 'SUB-001',
+        to: 'SUB-002',
+        type: 'prerequisite',
+        reason: 'Disinfection and road patching require the sewer overflow to be completely stopped first.'
+      }
+    ];
+
+    explainability = [
+      '• Multi-Agency Trigger: Sewerage Division + Municipal Roads Department.',
+      '• Root Cause: Blocked main sewer line causing surface flooding.',
+      '• Operational Dependency: Clearing sewer blockage (SUB-001) precedes road disinfection & patching (SUB-002).'
+    ];
+
+  } else {
+    isMultiAgency = false;
+    primaryIssueTitle = `${department} Civic Issue`;
+    rootCause = `Direct ${department} operational defect`;
+    affectedInfra = [`${department} Infrastructure`];
+    subIssues = [
+      {
+        id: 'SUB-001',
+        title: `Resolve ${department} issue`,
+        description: text,
+        category: department,
+        responsible_authority: authority,
+        responsible_department: deptName,
+        assigned_officer: assignedOfficer,
+        confidence: routingConfidence,
+        required_action: `Dispatch field team to resolve ${department} issue`,
+        dependencies: [],
+        status: 'Pending'
+      }
+    ];
+    explainability = [
+      `• Single-Agency Issue: Handled entirely by ${authority}.`,
+      `• No cross-department operational dependencies detected.`
+    ];
+  }
+
+  const overallConf = Math.min(98, Math.max(40, Math.round(subIssues.reduce((acc, s) => acc + s.confidence, 0) / subIssues.length)));
+
+  const resolution_plan: import('../types/grievance').ResolutionPlan = {
+    is_multi_agency: isMultiAgency,
+    primary_issue_title: primaryIssueTitle,
+    root_cause: rootCause,
+    affected_infrastructure: affectedInfra,
+    sub_issues: subIssues,
+    dependencies,
+    overall_confidence: overallConf,
+    explainability,
+    routing
+  };
+
   return {
     language,
     department,
@@ -279,7 +486,8 @@ export function performAiTriage(
     duplicateMatch,
     matchedCivicIssue,
     confidence,
-    routing
+    routing,
+    resolution_plan
   };
 }
 

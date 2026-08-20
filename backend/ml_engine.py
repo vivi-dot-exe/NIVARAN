@@ -287,3 +287,214 @@ def route_grievance(complaint_text: str, selected_category: str = None, ward: st
         "suggested_department": top_dept,
         "citizen_selected_category": selected_category
     }
+
+
+def analyze_and_decompose_grievance(text: str, ward: str = "Ward 4 - Andheri West", selected_category: str = None) -> dict:
+    """
+    AI Civic Issue Understanding & Multi-Agency Decomposition Engine.
+    Understands natural-language grievance, extracts root cause vs consequences,
+    determines SINGLE_AGENCY vs MULTI_AGENCY, generates sub-issues, and builds dependency graph.
+    """
+    lower = text.lower()
+    routing = route_grievance(text, selected_category, ward)
+
+    # Keyword / Entity Detection Matrix
+    has_water_pipe = any(w in lower for w in ['pipe', 'pipeline', 'water leak', 'burst', 'gushing', 'water main'])
+    has_road_damage = any(w in lower for w in ['pothole', 'road', 'asphalt', 'caved', 'collaps', 'tar', 'street damage', 'crater'])
+    has_tree = any(w in lower for w in ['tree', 'branch', 'trunk', 'fallen tree'])
+    has_elec = any(w in lower for w in ['wire', 'cable', 'transformer', 'pole', 'electric', 'power', 'blackout', 'spark'])
+    has_sewer = any(w in lower for w in ['sewer', 'gutter', 'drain', 'overflow', 'sludge', 'manhole'])
+    has_garbage = any(w in lower for w in ['garbage', 'trash', 'kachra', 'waste', 'dump', 'bin'])
+
+    # Determine Single vs Multi-Agency
+    # Guardrail: Garbage symptoms (smell, flies, bin) = SINGLE_AGENCY
+    is_multi = False
+    primary_title = "Civic Grievance"
+    root_cause = "Civic Infrastructure Issue"
+    affected_infra = []
+    sub_issues = []
+    dependencies = []
+    explainability = []
+
+    if has_water_pipe and has_road_damage:
+        is_multi = True
+        primary_title = "Road surface collapse caused by underground water pipeline leak"
+        root_cause = "Underground main water pipeline leakage & soil erosion"
+        affected_infra = ["Water Pipeline Infrastructure", "Municipal Road Surface", "Traffic Control"]
+        
+        sub1 = {
+            "id": "SUB-001",
+            "title": "Repair underground water pipeline leakage",
+            "description": "Isolate damaged water main section and seal/replace pipe.",
+            "category": "Water Supply",
+            "responsible_authority": "Maharashtra Water Supply & Sewerage Board",
+            "responsible_department": "Water Maintenance Division",
+            "assigned_officer": f"{ward.split(' - ')[0]} Executive Engineer (Er. Vikram Desai)",
+            "confidence": 92,
+            "required_action": "Repair water main pipeline leak & stop erosion",
+            "dependencies": [],
+            "status": "Pending"
+        }
+        sub2 = {
+            "id": "SUB-002",
+            "title": "Road surface resurfacing & crater repair",
+            "description": "Backfill eroded sub-grade and lay fresh asphalt tar layer.",
+            "category": "Roads & Infra",
+            "responsible_authority": "Municipal Corporation of Greater Mumbai",
+            "responsible_department": "Municipal Roads Department",
+            "assigned_officer": f"{ward.split(' - ')[0]} Roads Nodal Officer (Er. Rajesh Sharma)",
+            "confidence": 95,
+            "required_action": "Resurface caved-in road asphalt",
+            "dependencies": ["SUB-001"],
+            "status": "Blocked"
+        }
+        sub_issues = [sub1, sub2]
+
+        dependencies = [{
+            "from": "SUB-001",
+            "to": "SUB-002",
+            "type": "prerequisite",
+            "reason": "Road resurfacing can only begin after the underlying water pipe leak is sealed to prevent repeated washouts."
+        }]
+
+        explainability = [
+            "• Detected 2 distinct operational responsibilities: Water Pipeline Repair + Road Surface Repair.",
+            "• Root Cause: Underground water pipe burst caused sub-soil erosion resulting in road collapse.",
+            "• Operational Dependency: Pipeline repair (SUB-001) MUST complete before road resurfacing (SUB-002) unlocks."
+        ]
+
+    elif has_tree and (has_elec or has_road_damage):
+        is_multi = True
+        primary_title = "Fallen tree damaging electrical cables and blocking traffic"
+        root_cause = "Heavy storm uprooted mature roadside tree onto overhead electrical lines"
+        affected_infra = ["High Voltage Power Lines", "Road Transit Corridor", "Urban Forestry"]
+
+        sub1 = {
+            "id": "SUB-001",
+            "title": "Isolate high voltage cables & clear electrical hazard",
+            "description": "De-energize snagged overhead power lines to allow tree cutting.",
+            "category": "Electricity",
+            "responsible_authority": "BEST Electricity & Power Supply Board",
+            "responsible_department": "High Voltage Grid Operations",
+            "assigned_officer": f"{ward.split(' - ')[0]} Assistant Electrical Engineer (Er. Amit Verma)",
+            "confidence": 94,
+            "required_action": "Safely isolate snagged power cables",
+            "dependencies": [],
+            "status": "Pending"
+        }
+        sub2 = {
+            "id": "SUB-002",
+            "title": "Cut and clear fallen tree trunk",
+            "description": "Use chainsaw teams to clear fallen trunk and branches.",
+            "category": "Sanitation & Waste",
+            "responsible_authority": "Municipal Corporation of Greater Mumbai",
+            "responsible_department": "Parks & Garden Cell",
+            "assigned_officer": f"{ward.split(' - ')[0]} Chief Sanitation Inspector (Shri Suresh Patil)",
+            "confidence": 90,
+            "required_action": "Remove fallen tree obstruction from roadway",
+            "dependencies": ["SUB-001"],
+            "status": "Blocked"
+        }
+        sub_issues = [sub1, sub2]
+
+        dependencies = [{
+            "from": "SUB-001",
+            "to": "SUB-002",
+            "type": "prerequisite",
+            "reason": "Tree cutting crew cannot operate until BEST isolates live high-voltage power lines."
+        }]
+
+        explainability = [
+            "• Detected 2 distinct authorities: BEST Electricity Board + Municipal Parks Cell.",
+            "• Root Cause: Uprooted tree snagged live high-voltage power lines.",
+            "• Dependency: Power isolation (SUB-001) is a mandatory safety prerequisite before tree removal (SUB-002)."
+        ]
+
+    elif has_sewer and has_road_damage:
+        is_multi = True
+        primary_title = "Sewer line blockage causing sewage flooding and road damage"
+        root_cause = "Main arterial sewer pipe blockage causing toxic effluent overflow"
+        affected_infra = ["Underground Drainage System", "Municipal Road Asphalt"],
+
+        sub1 = {
+            "id": "SUB-001",
+            "title": "De-clog main sewer line & drain toxic effluent",
+            "description": "Deploy suction jetting machines to clear drainage blockage.",
+            "category": "Sanitation & Waste",
+            "responsible_authority": "Municipal Corporation of Greater Mumbai",
+            "responsible_department": "Storm Water Drainage & Sewerage Division",
+            "assigned_officer": f"{ward.split(' - ')[0]} Chief Sanitation Inspector (Shri Suresh Patil)",
+            "confidence": 91,
+            "required_action": "De-clog blocked sewer line and drain effluent",
+            "dependencies": [],
+            "status": "Pending"
+        }
+        sub2 = {
+            "id": "SUB-002",
+            "title": "Disinfect road surface & repair damaged asphalt",
+            "description": "Spray chemical disinfectant and patch eroded road sections.",
+            "category": "Roads & Infra",
+            "responsible_authority": "Municipal Corporation of Greater Mumbai",
+            "responsible_department": "Municipal Roads Department",
+            "assigned_officer": f"{ward.split(' - ')[0]} Roads Nodal Officer (Er. Rajesh Sharma)",
+            "confidence": 88,
+            "required_action": "Sanitize area and repair damaged pavement",
+            "dependencies": ["SUB-001"],
+            "status": "Blocked"
+        }
+        sub_issues = [sub1, sub2]
+
+        dependencies = [{
+            "from": "SUB-001",
+            "to": "SUB-002",
+            "type": "prerequisite",
+            "reason": "Disinfection and road patching require the sewer overflow to be completely stopped first."
+        }]
+
+        explainability = [
+            "• Multi-Agency Issue: Sewerage Division + Municipal Roads Department.",
+            "• Root Cause: Blocked main sewer line causing surface flooding.",
+            "• Operational Dependency: Clearing sewer blockage (SUB-001) precedes road disinfection & patching (SUB-002)."
+        ]
+
+    else:
+        # SINGLE_AGENCY ISSUE (Default Single-Ticket Workflow)
+        is_multi = False
+        primary_title = f"{routing['department']} Civic Issue"
+        root_cause = f"Direct {routing['department']} operational defect"
+        affected_infra = [f"{routing['department']} Infrastructure"]
+
+        sub1 = {
+            "id": "SUB-001",
+            "title": f"Resolve {routing['department']} issue",
+            "description": text,
+            "category": routing["department"],
+            "responsible_authority": routing["authority"],
+            "responsible_department": routing["department_name"],
+            "assigned_officer": routing["assigned_officer"],
+            "confidence": routing["routing_confidence"],
+            "required_action": f"Dispatch field team to resolve {routing['department']} issue",
+            "dependencies": [],
+            "status": "Pending"
+        }
+        sub_issues = [sub1]
+        explainability = [
+            f"• Single-Agency Issue: Handled entirely by {routing['authority']}.",
+            f"• No cross-department operational dependencies detected."
+        ]
+
+    overall_conf = int(min(98, max(40, round(sum(s["confidence"] for s in sub_issues) / len(sub_issues)))))
+
+    resolution_plan = {
+        "is_multi_agency": is_multi,
+        "primary_issue_title": primary_title,
+        "root_cause": root_cause,
+        "affected_infrastructure": affected_infra,
+        "sub_issues": sub_issues,
+        "dependencies": dependencies,
+        "overall_confidence": overall_conf,
+        "explainability": explainability,
+        "routing": routing
+    }
+
+    return resolution_plan

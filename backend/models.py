@@ -96,8 +96,38 @@ class CivicIssue(Base):
     cluster_confidence = Column(Float, default=0.85, nullable=False)
     resolved_at = Column(DateTime, nullable=True)
 
+    # Multi-Agency Decomposition Fields
+    is_multi_agency = Column(Boolean, default=False, nullable=False)
+    primary_issue_title = Column(String, nullable=True)
+    root_cause = Column(Text, nullable=True)
+    affected_infrastructure_json = Column(Text, nullable=True)
+    sub_issues_json = Column(Text, nullable=True)
+    dependencies_json = Column(Text, nullable=True)
+    resolution_plan_json = Column(Text, nullable=True)
+    decomposition_confidence = Column(Integer, default=85, nullable=False)
+
     # Relationship to child tickets
     tickets = relationship("Ticket", back_populates="civic_issue", cascade="all, delete-orphan")
+    sub_issues = relationship("SubIssue", back_populates="civic_issue", cascade="all, delete-orphan")
+
+
+class SubIssue(Base):
+    __tablename__ = "SubIssue"
+
+    id = Column(String, primary_key=True, index=True)
+    civic_issue_id = Column(String, ForeignKey("CivicIssue.id"), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String, nullable=False)
+    responsible_authority = Column(String, nullable=False)
+    responsible_department = Column(String, nullable=False)
+    assigned_officer = Column(String, nullable=True)
+    confidence = Column(Integer, default=85, nullable=False)
+    required_action = Column(Text, nullable=True)
+    dependencies_json = Column(Text, nullable=True)
+    status = Column(String, default="Pending", nullable=False)
+
+    civic_issue = relationship("CivicIssue", back_populates="sub_issues")
 
 
 class Ticket(Base):
@@ -111,7 +141,7 @@ class Ticket(Base):
     status = Column(String, default="Pending", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
-    # Routing Inheritance Fields
+    # Routing & Multi-Agency Inheritance Fields
     responsible_authority = Column(String, nullable=True)
     responsible_department = Column(String, nullable=True)
     assigned_officer = Column(String, nullable=True)
@@ -124,8 +154,14 @@ class Ticket(Base):
     manual_override = Column(Boolean, default=False, nullable=False)
     override_reason = Column(Text, nullable=True)
 
+    is_multi_agency = Column(Boolean, default=False, nullable=False)
+    primary_issue_title = Column(String, nullable=True)
+    root_cause = Column(Text, nullable=True)
+    resolution_plan_json = Column(Text, nullable=True)
+    
     # Foreign key linking ticket to parent CivicIssue
     civic_issue_id = Column(String, ForeignKey("CivicIssue.id"), nullable=True)
+
     civic_issue = relationship("CivicIssue", back_populates="tickets")
 
 

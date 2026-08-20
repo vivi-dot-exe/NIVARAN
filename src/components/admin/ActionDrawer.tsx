@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Grievance, DepartmentType, GrievanceStatus } from '../../types/grievance';
 import { DEPARTMENTS_LIST } from '../../mockData/grievances';
+import { ResolutionPlanCard } from '../common/ResolutionPlanCard';
 import {
   X,
   CheckCircle2,
@@ -218,6 +219,14 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
                   </p>
                 </div>
               </div>
+
+              {/* MULTI-AGENCY DECOMPOSITION & RESOLUTION PLAN */}
+              {(targetIssue?.resolution_plan || targetGrievance?.resolution_plan) && (
+                <ResolutionPlanCard
+                  plan={targetIssue?.resolution_plan || targetGrievance?.resolution_plan!}
+                  isDarkMode={isDarkMode}
+                />
+              )}
 
               {/* Re-assign Authority */}
               <div>

@@ -5,6 +5,7 @@ import { TRANSLATIONS } from '../../utils/translations';
 import { performAiTriage } from '../../utils/aiTriageEngine';
 import { WARDS_LIST } from '../../mockData/grievances';
 import { NvIcon } from '../common/NvIcon';
+import { ResolutionPlanCard } from '../common/ResolutionPlanCard';
 import {
   Send,
   AlertOctagon,
@@ -831,12 +832,13 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                       </div>
                     </div>
                     <div className="p-2 rounded bg-blue-900/40 border border-blue-500/30 text-[11px] text-blue-200 space-y-1">
-                      <span className="block font-bold text-white">Why was this routed here?</span>
-                      <p className="whitespace-pre-line leading-relaxed font-sans opacity-90">
-                        {triage.routing.routing_reason}
-                      </p>
                     </div>
                   </div>
+                )}
+
+                {/* MULTI-AGENCY DECOMPOSITION & RESOLUTION PLAN CARD */}
+                {triage.resolution_plan && (
+                  <ResolutionPlanCard plan={triage.resolution_plan} isDarkMode={isDarkMode} />
                 )}
 
               </div>
