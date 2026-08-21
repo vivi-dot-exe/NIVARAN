@@ -292,18 +292,29 @@ export async function registerApi(data: {
   ward?: string;
   preferred_language?: string;
 }): Promise<{ status: string; token: string; user: any }> {
-  const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.detail || 'Registration failed');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Registration failed');
+    }
+    const result = await res.json();
+    if (result.token) setAuthToken(result.token);
+    return result;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
   }
-  const result = await res.json();
-  if (result.token) setAuthToken(result.token);
-  return result;
 }
 
 export async function loginApi(
@@ -311,18 +322,29 @@ export async function loginApi(
   password: string,
   authType: string = 'citizen'
 ): Promise<{ status: string; token: string; user: any }> {
-  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ login_id: loginId, password, auth_type: authType })
-  });
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.detail || 'Login failed');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ login_id: loginId, password, auth_type: authType }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Login failed');
+    }
+    const result = await res.json();
+    if (result.token) setAuthToken(result.token);
+    return result;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
   }
-  const result = await res.json();
-  if (result.token) setAuthToken(result.token);
-  return result;
 }
 
 export async function fetchCurrentUserApi(): Promise<any> {
