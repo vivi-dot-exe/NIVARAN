@@ -10,7 +10,8 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
-  Layers
+  Layers,
+  RotateCcw
 } from 'lucide-react';
 
 interface GrievanceTableProps {
@@ -83,6 +84,31 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
       return false;
     }
   });
+
+  const hasActiveFilters =
+    searchTerm.trim() !== '' ||
+    selectedWard !== 'ALL' ||
+    selectedDept !== 'ALL' ||
+    selectedPriority !== 'ALL' ||
+    selectedStatus !== 'ALL' ||
+    showDuplicatesOnly;
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSelectedWard('ALL');
+    setSelectedDept('ALL');
+    setSelectedPriority('ALL');
+    setSelectedStatus('ALL');
+    setShowDuplicatesOnly(false);
+    try {
+      localStorage.removeItem('nivaran_table_search');
+      localStorage.removeItem('nivaran_table_ward');
+      localStorage.removeItem('nivaran_table_dept');
+      localStorage.removeItem('nivaran_table_priority');
+      localStorage.removeItem('nivaran_table_status');
+      localStorage.removeItem('nivaran_table_duplicates');
+    } catch {}
+  };
 
   // Filter Civic Issues
   const filteredIssues = civicIssues.filter((iss) => {
@@ -309,6 +335,15 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
 
         {/* Action Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
+          {hasActiveFilters && (
+            <button
+              onClick={handleResetFilters}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center space-x-1.5 shadow-md cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset All Filters</span>
+            </button>
+          )}
           {viewMode === 'tickets' && (
             <button
               onClick={() => setShowDuplicatesOnly(!showDuplicatesOnly)}
@@ -514,8 +549,46 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 font-bold">
-                    No Civic Issues found matching current filters.
+                  <td colSpan={7} className="p-10 text-center space-y-3 font-sans">
+                    <div className="text-amber-400 font-extrabold text-sm">
+                      No Civic Issues match your current filter selection
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-300">
+                      {selectedWard !== 'ALL' && (
+                        <span className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 font-mono">
+                          Ward: {selectedWard}
+                        </span>
+                      )}
+                      {selectedDept !== 'ALL' && (
+                        <span className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 font-mono">
+                          Dept: {selectedDept}
+                        </span>
+                      )}
+                      {selectedPriority !== 'ALL' && (
+                        <span className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 font-mono">
+                          Priority: {selectedPriority}
+                        </span>
+                      )}
+                      {selectedStatus !== 'ALL' && (
+                        <span className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 font-mono">
+                          Status: {selectedStatus}
+                        </span>
+                      )}
+                      {searchTerm.trim() !== '' && (
+                        <span className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 font-mono">
+                          Search: "{searchTerm}"
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <button
+                        onClick={handleResetFilters}
+                        className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition shadow-lg cursor-pointer inline-flex items-center space-x-1.5"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Reset All Filters to View All Issues</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )}
