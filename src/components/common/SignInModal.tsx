@@ -9,6 +9,7 @@ interface SignInModalProps {
   isDarkMode: boolean;
   onLoginSuccess: (user: { id: string; name: string; role: string; email: string; ward?: string }) => void;
   onOpenRegister?: () => void;
+  initialAuthType?: 'citizen' | 'officer';
 }
 
 export const SignInModal: React.FC<SignInModalProps> = ({
@@ -16,9 +17,16 @@ export const SignInModal: React.FC<SignInModalProps> = ({
   onClose,
   isDarkMode,
   onLoginSuccess,
-  onOpenRegister
+  onOpenRegister,
+  initialAuthType = 'citizen'
 }) => {
-  const [authType, setAuthType] = useState<'citizen' | 'officer'>('citizen');
+  const [authType, setAuthType] = useState<'citizen' | 'officer'>(initialAuthType);
+
+  React.useEffect(() => {
+    if (isOpen && initialAuthType) {
+      setAuthType(initialAuthType);
+    }
+  }, [isOpen, initialAuthType]);
   
   // Citizen form state
   const [mobileOrEmail, setMobileOrEmail] = useState('citizen@nivaran.demo');

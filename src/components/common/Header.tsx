@@ -35,6 +35,7 @@ interface HeaderProps {
   onOpenSiteMap: () => void;
   onGoHome: () => void;
   onOpenSignIn: () => void;
+  onOpenOfficerSignIn?: () => void;
   onOpenRegister?: () => void;
   currentUser: { id?: string; name: string; role: string; email: string; ward?: string } | null;
   onSignOut: () => void;
@@ -54,6 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSiteMap,
   onGoHome,
   onOpenSignIn,
+  onOpenOfficerSignIn,
   onOpenRegister,
   currentUser,
   onSignOut
@@ -230,7 +232,12 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* NODAL OFFICER DASHBOARD TAB */}
             <button
-              onClick={() => setActiveTab('admin')}
+              onClick={() => {
+                if (!isOfficerLoggedIn && onOpenOfficerSignIn) {
+                  onOpenOfficerSignIn();
+                }
+                setActiveTab('admin');
+              }}
               className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition relative cursor-pointer ${
                 activeTab === 'admin'
                   ? 'bg-amber-400 text-slate-950 shadow-md'

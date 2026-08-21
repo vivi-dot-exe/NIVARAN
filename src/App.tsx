@@ -34,7 +34,7 @@ import {
   updateCivicIssueStatusApi,
   overrideRoutingApi
 } from './services/api';
-import { Search, FileText, Lock } from 'lucide-react';
+import { Search, FileText, Lock, ShieldCheck } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'nivaran_grievances_v3';
 const CIVIC_ISSUES_KEY = 'nivaran_civic_issues_v1';
@@ -131,6 +131,7 @@ export function App() {
   const [isFaqsOpen, setIsFaqsOpen] = useState(false);
   const [isSiteMapOpen, setIsSiteMapOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [signInAuthType, setSignInAuthType] = useState<'citizen' | 'officer'>('citizen');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isRegisterPageOpen, setIsRegisterPageOpen] = useState(false);
 
@@ -576,7 +577,14 @@ export function App() {
         onOpenFaqs={() => setIsFaqsOpen(true)}
         onOpenSiteMap={() => setIsSiteMapOpen(true)}
         onGoHome={handleGoHome}
-        onOpenSignIn={() => setIsSignInOpen(true)}
+        onOpenSignIn={() => {
+          setSignInAuthType('citizen');
+          setIsSignInOpen(true);
+        }}
+        onOpenOfficerSignIn={() => {
+          setSignInAuthType('officer');
+          setIsSignInOpen(true);
+        }}
         onOpenRegister={() => setIsRegisterPageOpen(true)}
         currentUser={currentUser}
         onSignOut={handleSignOut}
@@ -675,69 +683,86 @@ export function App() {
         {/* VIEW 3: NODAL OFFICER DASHBOARD */}
         {activeTab === 'admin' && (
           <div className="space-y-8">
-            {!isOfficerLoggedIn && (
-              <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-3 ${
-                isDarkMode ? 'bg-slate-900/80 border-amber-500/30 text-slate-200' : 'bg-amber-50/80 border-amber-300 text-slate-800'
+            {!isOfficerLoggedIn ? (
+              <div className={`p-8 sm:p-12 rounded-3xl border text-center max-w-2xl mx-auto shadow-2xl my-8 sm:my-12 ${
+                isDarkMode ? 'bg-slate-900/95 border-rose-500/30 text-slate-100' : 'bg-white border-rose-200 text-slate-900'
               }`}>
-                <div className="flex items-center space-x-3 text-xs">
-                  <span className="px-2.5 py-1 rounded bg-[#7A0C38] text-white font-extrabold uppercase text-[10px]">
-                    Officer Preview Mode
-                  </span>
-                  <span className="font-medium">
-                    You are viewing the Nodal Officer Triage Grid in Demo Mode (Ward 4 - Andheri West).
-                  </span>
+                <div className="w-16 h-16 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center mx-auto mb-5 border border-rose-500/40 shadow-inner">
+                  <Lock className="w-8 h-8" />
                 </div>
-                <button
-                  onClick={() => setIsSignInOpen(true)}
-                  className="px-3 py-1.5 rounded-lg bg-[#7A0C38] hover:bg-[#961247] text-white text-xs font-bold transition flex items-center space-x-1.5 shrink-0"
-                >
-                  <Lock className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Authenticate as Officer</span>
-                </button>
+                <div className="inline-block px-3 py-1 rounded-full bg-[#7A0C38] text-amber-300 font-extrabold uppercase text-[11px] tracking-wider mb-2">
+                  Role-Based Access Control (RBAC)
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black font-heading mt-2">
+                  Nodal Officer Portal Restricted
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-3 leading-relaxed font-sans">
+                  You are currently logged in as {currentUser?.name ? <strong className="text-amber-400">{currentUser.name} ({currentUser.role || 'Citizen'})</strong> : 'a Citizen'}. The DARPG Nodal Officer Triage Grid, SLA Action Panel, and Ward Heatmaps are restricted to authorized government officers.
+                </p>
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    onClick={() => {
+                      setSignInAuthType('officer');
+                      setIsSignInOpen(true);
+                    }}
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#7A0C38] hover:bg-[#961247] text-white text-xs font-black tracking-wide uppercase transition flex items-center justify-center space-x-2 shadow-lg shadow-rose-950/40 cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-amber-300" />
+                    <span>Authenticate as Nodal Officer</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('citizen')}
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-extrabold transition cursor-pointer"
+                  >
+                    Return to Citizen Portal
+                  </button>
+                </div>
               </div>
+            ) : (
+              <>
+                {/* KPI Metric Summary Cards */}
+                <KpiCards
+                  grievances={grievances}
+                  civicIssues={civicIssues}
+                  isDarkMode={isDarkMode}
+                  currentLanguage={currentLanguage}
+                />
+
+                {/* Department Breakdown & Status Proportions + Priority SLA Breach Triage Tracker */}
+                <AnalyticsCharts
+                  grievances={grievances}
+                  isDarkMode={isDarkMode}
+                  currentLanguage={currentLanguage}
+                />
+
+                {/* 2D BERTopic Scatter Cluster Map */}
+                <BerTopicScatter
+                  grievances={grievances}
+                  selectedClusterId={selectedClusterId}
+                  onSelectCluster={setSelectedClusterId}
+                  isDarkMode={isDarkMode}
+                  currentLanguage={currentLanguage}
+                />
+
+                {/* Geographic Ward Heatmap with SLI Layers */}
+                <GeographicHeatmap
+                  grievances={grievances}
+                  isDarkMode={isDarkMode}
+                  currentLanguage={currentLanguage}
+                />
+
+                {/* Comprehensive Grievance Master Table */}
+                <GrievanceTable
+                  grievances={grievances}
+                  civicIssues={civicIssues}
+                  selectedClusterId={selectedClusterId}
+                  onSelectGrievance={setActiveActionGrievance}
+                  onSelectCivicIssue={(issue) => setActiveActionCivicIssue(issue)}
+                  isDarkMode={isDarkMode}
+                  currentLanguage={currentLanguage}
+                />
+              </>
             )}
-
-            {/* KPI Metric Summary Cards */}
-            <KpiCards
-              grievances={grievances}
-              civicIssues={civicIssues}
-              isDarkMode={isDarkMode}
-              currentLanguage={currentLanguage}
-            />
-
-            {/* Department Breakdown & Status Proportions + Priority SLA Breach Triage Tracker */}
-            <AnalyticsCharts
-              grievances={grievances}
-              isDarkMode={isDarkMode}
-              currentLanguage={currentLanguage}
-            />
-
-            {/* 2D BERTopic Scatter Cluster Map */}
-            <BerTopicScatter
-              grievances={grievances}
-              selectedClusterId={selectedClusterId}
-              onSelectCluster={setSelectedClusterId}
-              isDarkMode={isDarkMode}
-              currentLanguage={currentLanguage}
-            />
-
-            {/* Geographic Ward Heatmap with SLI Layers */}
-            <GeographicHeatmap
-              grievances={grievances}
-              isDarkMode={isDarkMode}
-              currentLanguage={currentLanguage}
-            />
-
-            {/* Comprehensive Grievance Master Table */}
-            <GrievanceTable
-              grievances={grievances}
-              civicIssues={civicIssues}
-              selectedClusterId={selectedClusterId}
-              onSelectGrievance={setActiveActionGrievance}
-              onSelectCivicIssue={(issue) => setActiveActionCivicIssue(issue)}
-              isDarkMode={isDarkMode}
-              currentLanguage={currentLanguage}
-            />
           </div>
         )}
 
@@ -805,6 +830,7 @@ export function App() {
         isOpen={isSignInOpen}
         onClose={() => setIsSignInOpen(false)}
         isDarkMode={isDarkMode}
+        initialAuthType={signInAuthType}
         onOpenRegister={() => {
           setIsSignInOpen(false);
           setIsRegisterPageOpen(true);
