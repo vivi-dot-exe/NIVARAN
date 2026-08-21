@@ -6,6 +6,7 @@ import { performAiTriage } from '../../utils/aiTriageEngine';
 import { WARDS_LIST } from '../../mockData/grievances';
 import { NvIcon } from '../common/NvIcon';
 import { ResolutionPlanCard } from '../common/ResolutionPlanCard';
+import { SamadhanDidiModal } from '../common/SamadhanDidiModal';
 import {
   Send,
   AlertOctagon,
@@ -72,6 +73,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
   });
 
   const [upvotedId, setUpvotedId] = useState<string | null>(null);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   // Persist draft complaint query text as user types
   useEffect(() => {
@@ -327,24 +329,26 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
 
           {/* Right AI Assistant Widget (Samadhan Didi) */}
           <div className="lg:col-span-4 flex justify-center">
-            <div className="bg-slate-900/90 backdrop-blur-xl border border-blue-400/30 p-5 rounded-2xl shadow-xl text-center space-y-3 relative w-full max-w-xs">
-              
-              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500 p-1 shadow-lg relative">
+            <div
+              onClick={() => setIsChatbotOpen(true)}
+              className="bg-slate-900/90 hover:bg-slate-800/90 backdrop-blur-xl border border-blue-400/40 p-5 rounded-2xl shadow-xl text-center space-y-3 relative w-full max-w-xs cursor-pointer hover:scale-105 transition-all duration-200 group"
+            >
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500 p-1 shadow-lg relative group-hover:scale-110 transition">
                 <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center overflow-hidden">
                   <div className="w-full h-full bg-[#7A0C38] flex items-center justify-center font-extrabold text-xl text-amber-300 font-mono">
                     🙏
                   </div>
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-amber-400 text-slate-950 p-1 rounded-full border-2 border-slate-900">
-                  <Mic className="w-3 h-3" />
+                <div className="absolute -bottom-1 -right-1 bg-amber-400 text-slate-950 p-1 rounded-full border-2 border-slate-900 animate-pulse">
+                  <Mic className="w-3.5 h-3.5" />
                 </div>
               </div>
 
               <div>
                 <div className="px-2.5 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 font-mono font-extrabold text-[10px] inline-block">
-                  NIVARAN AI CHATBOT
+                  💬 CLICK TO CHAT WITH AI
                 </div>
-                <h3 className="font-extrabold text-xs text-white mt-1">
+                <h3 className="font-extrabold text-xs text-white mt-1 group-hover:text-amber-300 transition">
                   {t.samadhanDidi}
                 </h3>
                 <p className="text-[10px] text-blue-200">
@@ -368,6 +372,19 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Interactive Working AI Chatbot Modal */}
+          <SamadhanDidiModal
+            isOpen={isChatbotOpen}
+            onClose={() => setIsChatbotOpen(false)}
+            isDarkMode={isDarkMode}
+            currentLanguage={currentLanguage}
+            onAutoSubmitGrievance={(text, ward) => {
+              setComplaintText(text);
+              setSelectedWard(ward);
+              setIsChatbotOpen(false);
+            }}
+          />
 
         </div>
       </div>

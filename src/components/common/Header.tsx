@@ -332,7 +332,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={onOpenRegister}
                     className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-sm"
                   >
-                    Register
+                    Log In
                   </button>
                 )}
                 <button
