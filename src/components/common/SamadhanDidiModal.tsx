@@ -80,15 +80,31 @@ export const SamadhanDidiModal: React.FC<SamadhanDidiModalProps> = ({
         botResponseText = '🔍 I checked NIVARAN database! Complaint G-1001 is currently In Progress with Municipal Roads Department (Ward 4). Nodal Officer Er. Rajesh Sharma has dispatched a repair crew.';
       } else if (lower.length > 5) {
         const triage = performAiTriage(query, 'Ward 4 - Andheri West');
-        const assignedOff = triage.routing?.assigned_officer || 'Ward Nodal Officer';
-        botResponseText = `Got it! I analyzed your grievance:
+        const plan = triage.resolution_plan;
 
-📌 Identified Problem: ${triage.topic}
-🏛️ Department: ${triage.department}
-👤 Assigned Officer: ${assignedOff}
-⚡ Priority Level: ${triage.priority} (${triage.priorityScore}/100)
+        if (plan && plan.is_multi_agency && plan.sub_issues.length > 1) {
+          const deptsList = plan.sub_issues
+            .map((sub, i) => `${i + 1}️⃣ ${sub.category === 'Water Supply' ? '💧' : sub.category === 'Roads & Infra' ? '🛣️' : sub.category === 'Electricity' ? '⚡' : '🏛️'} ${sub.responsible_department} (${sub.responsible_authority})\n   • Action: ${sub.title}`)
+            .join('\n\n');
+
+          botResponseText = `Got it! I analyzed your grievance:
+
+📌 Problem: ${plan.primary_issue_title}
+⚡ Multi-Department Coordinated Action Plan (${plan.sub_issues.length} Departments Involved):
+
+${deptsList}
+
+Would you like me to lodge this multi-agency grievance into NIVARAN now?`;
+        } else {
+          const assignedOff = triage.routing?.assigned_officer || 'Ward Nodal Officer';
+          botResponseText = `Got it! I analyzed your grievance:
+
+📌 Problem: ${triage.topic}
+🏛️ Department: ${triage.department} (${triage.routing?.authority || 'Municipal Authority'})
+👤 Assigned Nodal Officer: ${assignedOff}
 
 Would you like me to lodge this grievance into NIVARAN now?`;
+        }
 
         actionPayload = {
           text: query,
