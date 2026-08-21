@@ -800,21 +800,21 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                   </div>
                 </div>
 
-                {/* AI ROUTING TRANSPARENCY CARD */}
+                {/* ASSIGNED DEPARTMENT & NODAL OFFICER CARD */}
                 {triage.routing && (
                   <div className={`p-4 rounded-xl border space-y-2.5 ${
                     isDarkMode ? 'bg-blue-950/60 border-blue-500/40 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-900'
                   }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
-                        🧭 AI AUTHORITY ROUTING ENGINE
+                        🏛️ ASSIGNED DEPARTMENT & NODAL OFFICER
                       </span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
                         triage.routing.routing_confidence >= 80
                           ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                           : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                       }`}>
-                        🟢 {triage.routing.routing_confidence}% {triage.routing.routing_status}
+                        🟢 {triage.routing.routing_confidence}% Match
                       </span>
                     </div>
                     <div className="space-y-1 text-xs">
@@ -831,13 +831,11 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                         <strong className="text-amber-400 text-right">{triage.routing.assigned_officer}</strong>
                       </div>
                     </div>
-                    <div className="p-2 rounded bg-blue-900/40 border border-blue-500/30 text-[11px] text-blue-200 space-y-1">
-                    </div>
                   </div>
                 )}
 
-                {/* MULTI-AGENCY DECOMPOSITION & RESOLUTION PLAN CARD */}
-                {triage.resolution_plan && (
+                {/* MULTI-AGENCY ACTION PLAN CARD (ONLY SHOWN FOR MULTI-DEPARTMENT ISSUES) */}
+                {triage.resolution_plan && triage.resolution_plan.is_multi_agency && (
                   <ResolutionPlanCard plan={triage.resolution_plan} isDarkMode={isDarkMode} />
                 )}
 
