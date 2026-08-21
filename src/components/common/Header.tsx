@@ -222,46 +222,39 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Wall of Governance</span>
             </button>
 
-            {/* ONLY RENDER NODAL DASHBOARD & BATCH DEMO IF OFFICER IS LOGGED IN */}
-            {isOfficerLoggedIn ? (
-              <>
-                <button
-                  onClick={() => setActiveTab('admin')}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition relative cursor-pointer ${
-                    activeTab === 'admin'
-                      ? 'bg-amber-400 text-slate-950 shadow-md'
-                      : 'text-white hover:bg-[#961247]'
-                  }`}
-                >
-                  <LayoutDashboard className="w-4 h-4" style={{ width: '16px', height: '16px' }} />
-                  <span>{t.nodalDashboard}</span>
-                  {breachedCount > 0 && (
-                    <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping absolute top-1 right-1" />
-                  )}
-                </button>
+            {/* NODAL OFFICER DASHBOARD TAB */}
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition relative cursor-pointer ${
+                activeTab === 'admin'
+                  ? 'bg-amber-400 text-slate-950 shadow-md'
+                  : 'text-white hover:bg-[#961247]'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" style={{ width: '16px', height: '16px' }} />
+              <span>{t.nodalDashboard}</span>
+              {isOfficerLoggedIn && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-700 text-white font-bold ml-1">
+                  Active
+                </span>
+              )}
+              {breachedCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping absolute top-1 right-1" />
+              )}
+            </button>
 
-                <button
-                  onClick={() => setActiveTab('demo')}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition cursor-pointer ${
-                    activeTab === 'demo'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-white hover:bg-[#961247]'
-                  }`}
-                >
-                  <Layers className="w-4 h-4 text-amber-300" style={{ width: '16px', height: '16px' }} />
-                  <span>{t.batchDemo}</span>
-                </button>
-              </>
-            ) : (
-              /* Officer Login Prompt Pill for Citizens */
-              <button
-                onClick={onOpenSignIn}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-black/20 hover:bg-black/30 border border-white/20 text-[11px] font-bold text-amber-200 transition cursor-pointer"
-              >
-                <Lock className="w-3 h-3 text-amber-400" />
-                <span>Nodal Officer Portal (Requires Officer Login)</span>
-              </button>
-            )}
+            {/* BATCH DEMO TAB */}
+            <button
+              onClick={() => setActiveTab('demo')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition cursor-pointer ${
+                activeTab === 'demo'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-white hover:bg-[#961247]'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-amber-300" style={{ width: '16px', height: '16px' }} />
+              <span>{t.batchDemo}</span>
+            </button>
           </nav>
 
           {/* Right Action Menu (Language selector, Theme Toggle Button, Sign in / Profile) */}

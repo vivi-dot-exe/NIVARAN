@@ -185,8 +185,8 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
 
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
-      const matchId = g.Complaint_ID.toLowerCase().includes(q);
-      const matchText = g.Complaint.toLowerCase().includes(q);
+      const matchId = (g.Complaint_ID || '').toLowerCase().includes(q);
+      const matchText = (g.Complaint || '').toLowerCase().includes(q);
       const matchOfficer = (g.Assigned_Officer || '').toLowerCase().includes(q);
       return matchId || matchText || matchOfficer;
     }

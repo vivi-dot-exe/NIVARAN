@@ -237,12 +237,14 @@ export const GeographicHeatmap: React.FC<GeographicHeatmapProps> = ({
             }
           />
 
-          {displayedGrievances.map((g) => {
+          {displayedGrievances
+            .filter((g) => g && g.Latitude != null && g.Longitude != null && !isNaN(Number(g.Latitude)) && !isNaN(Number(g.Longitude)))
+            .map((g) => {
             const styling = getMarkerStyling(g);
             return (
               <CircleMarker
                 key={g.Complaint_ID}
-                center={[g.Latitude, g.Longitude]}
+                center={[Number(g.Latitude), Number(g.Longitude)]}
                 radius={styling.radius}
                 pathOptions={{
                   color: styling.color,

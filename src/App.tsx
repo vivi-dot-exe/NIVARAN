@@ -34,7 +34,7 @@ import {
   updateCivicIssueStatusApi,
   overrideRoutingApi
 } from './services/api';
-import { Search, FileText } from 'lucide-react';
+import { Search, FileText, Lock } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'nivaran_grievances_v3';
 const CIVIC_ISSUES_KEY = 'nivaran_civic_issues_v1';
@@ -226,12 +226,12 @@ export function App() {
     };
   }, []);
 
-  // Ensure unauthenticated users cannot view admin tabs
+  // Save active tab to localStorage
   useEffect(() => {
-    if (!isOfficerLoggedIn && (activeTab === 'admin' || activeTab === 'demo')) {
-      setActiveTab('citizen');
-    }
-  }, [isOfficerLoggedIn, activeTab]);
+    try {
+      localStorage.setItem('nivaran_active_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
 
   // Breached count for SLA ticker
   const breachedCount = grievances.filter(
@@ -552,7 +552,10 @@ export function App() {
       {/* Header Navigation with Role-Based Privacy Protection */}
       <Header
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => {
+          setIsRegisterPageOpen(false);
+          setActiveTab(tab);
+        }}
         isDarkMode={isDarkMode}
         setIsDarkMode={setIsDarkMode}
         breachedCount={breachedCount}
@@ -659,9 +662,31 @@ export function App() {
           />
         )}
 
-        {/* VIEW 3: NODAL OFFICER DASHBOARD (LOCKED TO OFFICERS ONLY) */}
-        {activeTab === 'admin' && isOfficerLoggedIn && (
+        {/* VIEW 3: NODAL OFFICER DASHBOARD */}
+        {activeTab === 'admin' && (
           <div className="space-y-8">
+            {!isOfficerLoggedIn && (
+              <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-3 ${
+                isDarkMode ? 'bg-slate-900/80 border-amber-500/30 text-slate-200' : 'bg-amber-50/80 border-amber-300 text-slate-800'
+              }`}>
+                <div className="flex items-center space-x-3 text-xs">
+                  <span className="px-2.5 py-1 rounded bg-[#7A0C38] text-white font-extrabold uppercase text-[10px]">
+                    Officer Preview Mode
+                  </span>
+                  <span className="font-medium">
+                    You are viewing the Nodal Officer Triage Grid in Demo Mode (Ward 4 - Andheri West).
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsSignInOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-[#7A0C38] hover:bg-[#961247] text-white text-xs font-bold transition flex items-center space-x-1.5 shrink-0"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Authenticate as Officer</span>
+                </button>
+              </div>
+            )}
+
             {/* KPI Metric Summary Cards */}
             <KpiCards
               grievances={grievances}
@@ -706,8 +731,8 @@ export function App() {
           </div>
         )}
 
-        {/* VIEW 4: BATCH INGESTION DEMO (LOCKED TO OFFICERS ONLY) */}
-        {activeTab === 'demo' && isOfficerLoggedIn && (
+        {/* VIEW 4: BATCH INGESTION DEMO */}
+        {activeTab === 'demo' && (
           <BatchIngestionDemo
             onInjectBatch={handleInjectBatch}
             grievancesCount={grievances.length}
