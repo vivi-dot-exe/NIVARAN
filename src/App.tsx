@@ -11,6 +11,7 @@ import { SignInModal } from './components/common/SignInModal';
 import { RegisterModal } from './components/common/RegisterModal';
 import { GrievanceForm } from './components/citizen/GrievanceForm';
 import { CitizenTracker } from './components/citizen/CitizenTracker';
+import { RegisterPage } from './components/citizen/RegisterPage';
 import { KpiCards } from './components/admin/KpiCards';
 import { AnalyticsCharts } from './components/admin/AnalyticsCharts';
 import { BerTopicScatter } from './components/admin/BerTopicScatter';
@@ -119,12 +120,13 @@ export function App() {
 
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
 
-  // Modal dialog states
+  // Modal & Full-Page View states
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isFaqsOpen, setIsFaqsOpen] = useState(false);
   const [isSiteMapOpen, setIsSiteMapOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isRegisterPageOpen, setIsRegisterPageOpen] = useState(false);
 
   // Admin filter states - PERSISTENT
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(() => {
@@ -347,7 +349,7 @@ export function App() {
         onOpenSiteMap={() => setIsSiteMapOpen(true)}
         onGoHome={handleGoHome}
         onOpenSignIn={() => setIsSignInOpen(true)}
-        onOpenRegister={() => setIsRegisterOpen(true)}
+        onOpenRegister={() => setIsRegisterPageOpen(true)}
         currentUser={currentUser}
         onSignOut={handleSignOut}
       />
@@ -355,8 +357,26 @@ export function App() {
       {/* Main Page Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
+        {/* VIEW 0: FULL-PAGE CPGRAMS CITIZEN REGISTRATION */}
+        {isRegisterPageOpen && (
+          <RegisterPage
+            isDarkMode={isDarkMode}
+            onRegisterSuccess={(newUser) => {
+              setCurrentUser(newUser);
+              setIsRegisterPageOpen(false);
+              setActiveTab('citizen');
+              setCitizenSubTab('form');
+            }}
+            onNavigateToLogin={() => {
+              setIsRegisterPageOpen(false);
+              setIsSignInOpen(true);
+            }}
+            onBackToHome={() => setIsRegisterPageOpen(false)}
+          />
+        )}
+
         {/* VIEW 1: CITIZEN PORTAL */}
-        {activeTab === 'citizen' && (
+        {!isRegisterPageOpen && activeTab === 'citizen' && (
           <div className="space-y-6">
             
             {/* Citizen Sub-nav Bar */}
@@ -402,8 +422,8 @@ export function App() {
                 onTrackTicket={handleNavigateToTracker}
                 currentLanguage={currentLanguage}
                 currentUser={currentUser}
-                onOpenLogin={() => setIsRegisterOpen(true)}
-                onOpenRegister={() => setIsSignInOpen(true)}
+                onOpenLogin={() => setIsSignInOpen(true)}
+                onOpenRegister={() => setIsRegisterPageOpen(true)}
               />
             ) : (
               <CitizenTracker
@@ -526,7 +546,10 @@ export function App() {
         isOpen={isSignInOpen}
         onClose={() => setIsSignInOpen(false)}
         isDarkMode={isDarkMode}
-        onOpenRegister={() => setIsRegisterOpen(true)}
+        onOpenRegister={() => {
+          setIsSignInOpen(false);
+          setIsRegisterPageOpen(true);
+        }}
         onLoginSuccess={(user) => {
           setCurrentUser(user);
           if (user.role.includes('Nodal') || user.role.includes('Officer') || user.role.includes('Admin')) {
