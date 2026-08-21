@@ -252,7 +252,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <span>🏙️ CIVIC ISSUES VIEW</span>
+          <span>️ CIVIC ISSUES VIEW</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/30 text-blue-200 font-mono font-black">
             {filteredIssues.length} Active Issues
           </span>
@@ -266,7 +266,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
               : 'text-amber-400 hover:text-amber-300'
           }`}
         >
-          <span>⚠️ ROUTING REVIEW QUEUE</span>
+          <span>️ ROUTING REVIEW QUEUE</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-950 text-amber-300 font-mono font-black border border-amber-500/40">
             {reviewQueueIssues.length} Require Review
           </span>
@@ -280,7 +280,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <span>📋 CITIZEN REPORTS REGISTRY</span>
+          <span> CITIZEN REPORTS REGISTRY</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-500/30 text-rose-200 font-mono font-black">
             {filteredData.length} Reports
           </span>
@@ -295,7 +295,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
           <h3 className={`font-extrabold text-base uppercase tracking-wide flex items-center space-x-2 ${
             isDarkMode ? 'text-white' : 'text-slate-900'
           }`}>
-            <span>{viewMode === 'issues' ? '🏙️ Master Civic Issues Operational Console' : t.masterRegistry}</span>
+            <span>{viewMode === 'issues' ? '️ Master Civic Issues Operational Console' : t.masterRegistry}</span>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#7A0C38] text-white">
               {viewMode === 'issues' ? `${filteredIssues.length} Issues` : `${filteredData.length} ${t.ticketsFiltered}`}
             </span>
@@ -459,7 +459,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
                         <span>#{issue.id}</span>
                         {issue.is_emerging && (
                           <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 w-fit font-bold animate-pulse">
-                            +{issue.growth_rate}% Surge ⚠️
+                            +{issue.growth_rate}% Surge ️
                           </span>
                         )}
                       </div>
@@ -482,8 +482,8 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
                     </td>
                     <td className="p-3.5 whitespace-nowrap">
                       <div className="space-y-1 font-semibold text-xs">
-                        <span className="block text-emerald-400">👥 {issue.affected_citizen_count} citizens affected</span>
-                        <span className="block text-slate-300">📋 {issue.report_count} citizen reports</span>
+                        <span className="block text-emerald-400"> {issue.affected_citizen_count} citizens affected</span>
+                        <span className="block text-slate-300"> {issue.report_count} citizen reports</span>
                       </div>
                     </td>
                     <td className="p-3.5 whitespace-nowrap">
@@ -545,7 +545,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
                         <h4 className="font-extrabold text-white text-xs">{issue.issue_title}</h4>
                         {issue.category_mismatch && (
                           <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold block">
-                            ⚠️ Mismatch: Selected '{issue.citizen_selected_category}' vs AI '{issue.category}'
+                            ️ Mismatch: Selected '{issue.citizen_selected_category}' vs AI '{issue.category}'
                           </span>
                         )}
                         <p className="line-clamp-2 text-slate-300 text-[11px]">"{issue.issue_description}"</p>
@@ -563,7 +563,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
                           ? 'bg-rose-950 text-rose-400 border-rose-800'
                           : 'bg-amber-950 text-amber-400 border-amber-800'
                       }`}>
-                        🔴 {issue.routing_confidence || 54}% (Verification Req.)
+                         {issue.routing_confidence || 54}% (Verification Req.)
                       </span>
                     </td>
                     <td className="p-3.5 max-w-xs text-[11px] text-slate-300 whitespace-pre-line">
@@ -582,7 +582,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
               ) : (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-400 font-bold">
-                    ✓ Routing Review Queue empty. All active issues are automatically routed with high confidence (&ge;80%).
+                     Routing Review Queue empty. All active issues are automatically routed with high confidence (&ge;80%).
                   </td>
                 </tr>
               )}
@@ -657,7 +657,7 @@ export const GrievanceTable: React.FC<GrievanceTableProps> = ({
                       }`}>{row.Department}</span>
                       <span className={`text-[11px] font-medium block ${
                         isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                      }`}>📍 {row.Ward}</span>
+                      }`}> {row.Ward}</span>
                     </div>
                   </td>
 

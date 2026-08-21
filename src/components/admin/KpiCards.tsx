@@ -48,7 +48,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({
       }`}>
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
-            🏙️
+            ️
           </div>
           <div>
             <h3 className="font-extrabold text-sm text-white">
@@ -61,10 +61,10 @@ export const KpiCards: React.FC<KpiCardsProps> = ({
         </div>
         <div className="flex items-center space-x-3 text-xs font-extrabold">
           <span className="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40">
-            ⚠️ {criticalIssues} Critical Civic Issues
+            ️ {criticalIssues} Critical Civic Issues
           </span>
           <span className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-            👥 {affectedCitizensSum} Impacted Citizens
+             {affectedCitizensSum} Impacted Citizens
           </span>
         </div>
       </div>

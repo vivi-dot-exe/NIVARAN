@@ -169,7 +169,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
             
             {errorMsg && (
               <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold">
-                ⚠️ {errorMsg}
+                ️ {errorMsg}
               </div>
             )}
 
@@ -296,7 +296,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
                 {/* Quick Fill Demo Credentials */}
                 <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-[11px] space-y-1.5">
                   <span className="text-[10px] font-black uppercase text-amber-400 block">
-                    ⚡ QUICK DEMO CREDENTIALS
+                    QUICK DEMO CREDENTIALS
                   </span>
                   <div className="flex items-center space-x-2">
                     <button
@@ -304,21 +304,21 @@ export const SignInModal: React.FC<SignInModalProps> = ({
                       onClick={() => { setMobileOrEmail('citizen@nivaran.demo'); setCitizenPass('citizen123'); }}
                       className="px-2 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-200 text-[10px] font-bold"
                     >
-                      👤 Citizen Demo
+                      Citizen Demo
                     </button>
                     <button
                       type="button"
                       onClick={() => { setGovEmail('roads.officer@nivaran.demo'); setPassword('officer123'); setAuthType('officer'); }}
                       className="px-2 py-1 rounded bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-200 text-[10px] font-bold"
                     >
-                      🏛️ Roads Officer
+                      Roads Officer
                     </button>
                     <button
                       type="button"
                       onClick={() => { setGovEmail('admin@nivaran.demo'); setPassword('admin123'); setAuthType('officer'); }}
                       className="px-2 py-1 rounded bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 text-[10px] font-bold"
                     >
-                      👑 Super Admin
+                      Super Admin
                     </button>
                   </div>
                 </div>
@@ -357,7 +357,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
             <div className={`p-3 rounded-xl border text-[11px] text-center ${
               isDarkMode ? 'bg-slate-800/40 border-slate-700/60 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
             }`}>
-              <span className="font-semibold">🔒 Protected by NIVARAN RBAC & Password Hashing Engine</span>
+              <span className="font-semibold">Protected by NIVARAN RBAC & Password Hashing Engine</span>
             </div>
           </div>
         </motion.div>

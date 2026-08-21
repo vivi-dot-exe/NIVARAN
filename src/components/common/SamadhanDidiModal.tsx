@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Mic, MicOff, User, CheckCircle2 } from 'lucide-react';
+import { X, Send, Mic, MicOff, User, CheckCircle2, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { performAiTriage } from '../../utils/aiTriageEngine';
 import type { Language } from '../../utils/translations';
@@ -36,7 +36,7 @@ export const SamadhanDidiModal: React.FC<SamadhanDidiModalProps> = ({
     {
       id: 'msg-1',
       sender: 'bot',
-      text: 'Namaste! 🙏 I am Samadhan Didi (समाधान दीदी), your NIVARAN AI Assistant. Tell me what issue you are facing in your area, and I will route it directly to the responsible authority!',
+      text: 'Namaste! I am Samadhan Didi (समाधान दीदी), your NIVARAN AI Assistant. Tell me what issue you are facing in your area, and I will route it directly to the responsible authority!',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -77,20 +77,20 @@ export const SamadhanDidiModal: React.FC<SamadhanDidiModalProps> = ({
       const lower = query.toLowerCase();
 
       if (lower.includes('track') || lower.includes('status') || /g-\d+/i.test(query)) {
-        botResponseText = '🔍 I checked NIVARAN database! Complaint G-1001 is currently In Progress with Municipal Roads Department (Ward 4). Nodal Officer Er. Rajesh Sharma has dispatched a repair crew.';
+        botResponseText = 'I checked NIVARAN database! Complaint G-1001 is currently In Progress with Municipal Roads Department (Ward 4). Nodal Officer Er. Rajesh Sharma has dispatched a repair crew.';
       } else if (lower.length > 5) {
         const triage = performAiTriage(query, 'Ward 4 - Andheri West');
         const plan = triage.resolution_plan;
 
         if (plan && plan.is_multi_agency && plan.sub_issues.length > 1) {
           const deptsList = plan.sub_issues
-            .map((sub, i) => `${i + 1}️⃣ ${sub.category === 'Water Supply' ? '💧' : sub.category === 'Roads & Infra' ? '🛣️' : sub.category === 'Electricity' ? '⚡' : '🏛️'} ${sub.responsible_department} (${sub.responsible_authority})\n   • Action: ${sub.title}`)
+            .map((sub, i) => `${i + 1}. ${sub.responsible_department} (${sub.responsible_authority})\n   - Action: ${sub.title}`)
             .join('\n\n');
 
           botResponseText = `Got it! I analyzed your grievance:
 
-📌 Problem: ${plan.primary_issue_title}
-⚡ Multi-Department Coordinated Action Plan (${plan.sub_issues.length} Departments Involved):
+Problem: ${plan.primary_issue_title}
+Multi-Department Coordinated Action Plan (${plan.sub_issues.length} Departments Involved):
 
 ${deptsList}
 
@@ -99,9 +99,9 @@ Would you like me to lodge this multi-agency grievance into NIVARAN now?`;
           const assignedOff = triage.routing?.assigned_officer || 'Ward Nodal Officer';
           botResponseText = `Got it! I analyzed your grievance:
 
-📌 Problem: ${triage.topic}
-🏛️ Department: ${triage.department} (${triage.routing?.authority || 'Municipal Authority'})
-👤 Assigned Nodal Officer: ${assignedOff}
+Problem: ${triage.topic}
+Department: ${triage.department} (${triage.routing?.authority || 'Municipal Authority'})
+Assigned Nodal Officer: ${assignedOff}
 
 Would you like me to lodge this grievance into NIVARAN now?`;
         }
@@ -149,7 +149,7 @@ Would you like me to lodge this grievance into NIVARAN now?`;
     const confirmMsg: Message = {
       id: `sys-${Date.now()}`,
       sender: 'bot',
-      text: '✅ Grievance successfully lodged into NIVARAN! It has been assigned to Ward 4 Nodal Officer.',
+      text: 'Grievance successfully lodged into NIVARAN! It has been assigned to Ward 4 Nodal Officer.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     setMessages((prev) => [...prev, confirmMsg]);
@@ -169,8 +169,8 @@ Would you like me to lodge this grievance into NIVARAN now?`;
           {/* Header Bar */}
           <div className="bg-[#7A0C38] text-white p-4 flex items-center justify-between shadow-md">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-amber-400/20 border border-amber-300/40 flex items-center justify-center text-xl">
-                🙏
+              <div className="w-10 h-10 rounded-full bg-amber-400/20 border border-amber-300/40 flex items-center justify-center">
+                <Bot className="w-5 h-5 text-amber-300" />
               </div>
               <div>
                 <div className="flex items-center space-x-2">
@@ -208,7 +208,7 @@ Would you like me to lodge this grievance into NIVARAN now?`;
                     ? 'bg-blue-600 text-white'
                     : 'bg-[#7A0C38] text-amber-300'
                 }`}>
-                  {msg.sender === 'user' ? <User className="w-4 h-4" /> : '🙏'}
+                  {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4 text-amber-300" />}
                 </div>
 
                 <div className={`max-w-[80%] p-3.5 rounded-2xl text-xs leading-relaxed space-y-2 ${
@@ -245,19 +245,19 @@ Would you like me to lodge this grievance into NIVARAN now?`;
               onClick={() => handleSendMessage('Water pipeline leak under main road in Ward 4')}
               className="px-2.5 py-1 rounded-lg bg-blue-950 border border-blue-500/30 text-blue-200 whitespace-nowrap hover:bg-blue-900 transition"
             >
-              🚰 Water Pipe Burst
+              Water Pipe Burst
             </button>
             <button
               onClick={() => handleSendMessage('Potholes causing traffic jams on Andheri West main road')}
               className="px-2.5 py-1 rounded-lg bg-amber-950 border border-amber-500/30 text-amber-200 whitespace-nowrap hover:bg-amber-900 transition"
             >
-              🛣️ Road Damage
+              Road Damage
             </button>
             <button
               onClick={() => handleSendMessage('Track status of my complaint G-1001')}
               className="px-2.5 py-1 rounded-lg bg-emerald-950 border border-emerald-500/30 text-emerald-200 whitespace-nowrap hover:bg-emerald-900 transition"
             >
-              🔍 Track G-1001
+              Track G-1001
             </button>
           </div>
 

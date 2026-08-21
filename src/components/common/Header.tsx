@@ -80,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Backend Connection Indicator */}
           <div className="flex items-center space-x-1 font-mono font-bold text-[10px] px-2 py-0.5 rounded bg-black/30 border border-white/20">
             <Server className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
-            <span>{isBackendConnected ? '🟢 FastAPI Live (port 8000)' : '🟡 Client AI Triage Mode'}</span>
+            <span>{isBackendConnected ? 'FastAPI Live (port 8000)' : 'Client AI Triage Mode'}</span>
           </div>
 
           <span>|</span>
@@ -314,7 +314,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="flex flex-col text-left">
                   <span className="font-extrabold text-xs truncate max-w-[130px]">{currentUser.name}</span>
                   <span className="text-[9px] font-mono text-amber-200">
-                    {currentUser.role === 'SUPER_ADMIN' ? '👑 Admin' : currentUser.role === 'NODAL_OFFICER' ? '🏛️ Nodal Officer' : '👤 Citizen'}
+                    {currentUser.role === 'SUPER_ADMIN' ? 'Admin' : currentUser.role === 'NODAL_OFFICER' ? 'Nodal Officer' : 'Citizen'}
                   </span>
                 </div>
                 <button

@@ -216,11 +216,11 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                     <div className="grid grid-cols-2 gap-2 text-xs pt-1 font-semibold text-blue-200">
                       <div className="p-2 rounded bg-blue-900/40 border border-blue-500/20">
                         <span className="block text-[10px] text-blue-300">Affected Citizens</span>
-                        <strong className="text-white text-sm">👥 {parentIssue.affected_citizen_count} citizens</strong>
+                        <strong className="text-white text-sm"> {parentIssue.affected_citizen_count} citizens</strong>
                       </div>
                       <div className="p-2 rounded bg-blue-900/40 border border-blue-500/20">
                         <span className="block text-[10px] text-blue-300">Total Reports</span>
-                        <strong className="text-white text-sm">📋 {parentIssue.report_count} reports</strong>
+                        <strong className="text-white text-sm"> {parentIssue.report_count} reports</strong>
                       </div>
                     </div>
                     <p className="text-[11px] text-blue-300 italic pt-1">
@@ -278,10 +278,10 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                 }`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
-                      🏛️ ASSIGNED DEPARTMENT & AUTHORITY
+                      ASSIGNED DEPARTMENT & AUTHORITY
                     </span>
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                      🟢 {activeTicket.routing_confidence || 94}% Match
+                      {activeTicket.routing_confidence || 94}% Match
                     </span>
                   </div>
                   <div className="space-y-1 text-xs font-semibold">
@@ -350,7 +350,7 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                 {/* Step 1 */}
                 <div className="relative flex items-start space-x-4">
                   <div className="absolute -left-6 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                    ✓
+                    
                   </div>
                   <div>
                     <h4 className={`font-extrabold text-sm ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
@@ -372,7 +372,7 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                       ? 'bg-emerald-600 text-white'
                       : 'bg-slate-200 text-slate-600 border border-slate-300'
                   }`}>
-                    {getStepIndex(activeTicket.Status) >= 1 ? '✓' : '2'}
+                    {getStepIndex(activeTicket.Status) >= 1 ? '' : '2'}
                   </div>
                   <div>
                     <h4 className={`font-extrabold text-sm ${
@@ -398,7 +398,7 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                       ? 'bg-emerald-600 text-white'
                       : 'bg-slate-200 text-slate-600 border border-slate-300'
                   }`}>
-                    {getStepIndex(activeTicket.Status) >= 2 ? '✓' : '3'}
+                    {getStepIndex(activeTicket.Status) >= 2 ? '' : '3'}
                   </div>
                   <div>
                     <h4 className={`font-extrabold text-sm ${
@@ -421,7 +421,7 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                       ? 'bg-rose-600 text-white'
                       : 'bg-slate-200 text-slate-600 border border-slate-300'
                   }`}>
-                    {activeTicket.Status === 'Resolved' ? '✓' : '4'}
+                    {activeTicket.Status === 'Resolved' ? '' : '4'}
                   </div>
                   <div>
                     <h4 className={`font-extrabold text-sm ${

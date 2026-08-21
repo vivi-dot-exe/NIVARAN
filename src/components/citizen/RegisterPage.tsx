@@ -349,7 +349,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                 >
                   {WARDS_LIST.map((w) => (
                     <option key={w} value={w}>
-                      📍 {w}
+                      {w}
                     </option>
                   ))}
                 </select>

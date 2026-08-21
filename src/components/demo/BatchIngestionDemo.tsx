@@ -329,7 +329,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
             >
               <Send className="w-3.5 h-3.5" />
               <span>
-                {dispatchedHotspot === 'Ward 4' ? 'Repair Squad Dispatched! ✓' : 'Bulk Dispatch Ward 4 Repair Squad'}
+                {dispatchedHotspot === 'Ward 4' ? 'Repair Squad Dispatched! ' : 'Bulk Dispatch Ward 4 Repair Squad'}
               </span>
             </button>
           </div>
@@ -358,7 +358,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
             >
               <Send className="w-3.5 h-3.5" />
               <span>
-                {dispatchedHotspot === 'Ward 7' ? 'Asphalt Crew Dispatched! ✓' : 'Bulk Dispatch Asphalt Crew'}
+                {dispatchedHotspot === 'Ward 7' ? 'Asphalt Crew Dispatched! ' : 'Bulk Dispatch Asphalt Crew'}
               </span>
             </button>
           </div>
@@ -387,7 +387,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
             >
               <Send className="w-3.5 h-3.5" />
               <span>
-                {dispatchedHotspot === 'Ward 12' ? 'Power Grid Team Dispatched! ✓' : 'Dispatch High-Voltage Grid Team'}
+                {dispatchedHotspot === 'Ward 12' ? 'Power Grid Team Dispatched! ' : 'Dispatch High-Voltage Grid Team'}
               </span>
             </button>
           </div>

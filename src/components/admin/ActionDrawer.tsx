@@ -142,11 +142,11 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
                 <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-blue-500/30">
                   <div className="p-2 rounded bg-blue-900/40">
                     <span className="block text-[10px] text-blue-300">Affected Citizens</span>
-                    <strong className="text-white">👥 {targetIssue.affected_citizen_count} citizens</strong>
+                    <strong className="text-white"> {targetIssue.affected_citizen_count} citizens</strong>
                   </div>
                   <div className="p-2 rounded bg-blue-900/40">
                     <span className="block text-[10px] text-blue-300">Citizen Reports</span>
-                    <strong className="text-white">📋 {targetIssue.report_count} reports</strong>
+                    <strong className="text-white"> {targetIssue.report_count} reports</strong>
                   </div>
                 </div>
               </div>
@@ -166,7 +166,7 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
                   "{targetGrievance!.Complaint}"
                 </p>
                 <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800">
-                  <span>📍 {targetGrievance!.Ward}</span>
+                  <span> {targetGrievance!.Ward}</span>
                   <span>Submitted: {new Date(targetGrievance!.Date_Submitted).toLocaleDateString()}</span>
                 </div>
               </div>
@@ -206,10 +206,10 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
               }`}>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
-                    🧭 AI ROUTING DECISION & CONFIDENCE
+                    AI ROUTING DECISION & CONFIDENCE
                   </span>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    🟢 {targetIssue?.routing_confidence || targetGrievance?.routing_confidence || 85}% {targetIssue?.routing_status || targetGrievance?.routing_status || 'Automatically Routed'}
+                    {targetIssue?.routing_confidence || targetGrievance?.routing_confidence || 85}% {targetIssue?.routing_status || targetGrievance?.routing_status || 'Automatically Routed'}
                   </span>
                 </div>
                 <div className="p-2 rounded bg-blue-900/40 border border-blue-500/30 text-[11px] text-blue-200 space-y-1">
@@ -292,7 +292,7 @@ export const ActionDrawer: React.FC<ActionDrawerProps> = ({
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-800 border border-amber-500/40 text-xs text-amber-200 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400 mt-1 block">
-                  💡 Submitting a rationale logs an official officer override timestamp and audit log ("AI recommends. Government authority remains accountable").
+                   Submitting a rationale logs an official officer override timestamp and audit log ("AI recommends. Government authority remains accountable").
                 </span>
               </div>
 

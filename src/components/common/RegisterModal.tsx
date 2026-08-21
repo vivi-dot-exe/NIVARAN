@@ -115,7 +115,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
           <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
             {errorMsg && (
               <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold">
-                ⚠️ {errorMsg}
+                ️ {errorMsg}
               </div>
             )}
 

@@ -19,7 +19,9 @@ import {
   Info,
   Activity,
   Mic,
-  Volume2
+  Volume2,
+  UserCheck,
+  Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -346,7 +348,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500 p-1 shadow-lg relative group-hover:scale-110 transition">
                 <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center overflow-hidden">
                   <div className="w-full h-full bg-[#7A0C38] flex items-center justify-center font-extrabold text-xl text-amber-300 font-mono">
-                    🙏
+                    <UserCheck className="w-7 h-7 text-amber-300" />
                   </div>
                 </div>
                 <div className="absolute -bottom-1 -right-1 bg-amber-400 text-slate-950 p-1 rounded-full border-2 border-slate-900 animate-pulse">
@@ -356,7 +358,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
 
               <div>
                 <div className="px-2.5 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 font-mono font-extrabold text-[10px] inline-block">
-                  💬 CLICK TO CHAT WITH AI
+                  CLICK TO CHAT WITH AI
                 </div>
                 <h3 className="font-extrabold text-xs text-white mt-1 group-hover:text-amber-300 transition">
                   {t.samadhanDidi}
@@ -409,8 +411,8 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
             <div className={`p-8 rounded-2xl border text-center space-y-4 shadow-xl ${
               isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-900'
             }`}>
-              <div className="w-14 h-14 mx-auto rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-2xl">
-                🔒
+              <div className="w-14 h-14 mx-auto rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-rose-500" />
               </div>
               <h2 className="text-lg sm:text-xl font-extrabold text-rose-500 dark:text-rose-400 font-heading">
                 Grievance can now be lodged only by registered users..
@@ -461,7 +463,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               >
                 {WARDS_LIST.map((ward) => (
                   <option key={ward} value={ward}>
-                    📍 {ward}
+                    {ward}
                   </option>
                 ))}
               </select>
@@ -513,7 +515,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                     <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       <h4 className="text-xs font-black uppercase tracking-wider text-amber-400">
-                        ⚠️ Category Mismatch Detected!
+                        ️ Category Mismatch Detected!
                       </h4>
                       <p className="text-xs text-amber-200">
                         You selected <strong>"{triage.routing.citizen_selected_category}"</strong>, but NIVARAN AI detects your complaint relates to <strong>"{triage.routing.suggested_department}"</strong>.
@@ -541,7 +543,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                       }}
                       className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow-md"
                     >
-                      ✓ Use AI Suggested Route ({triage.routing.suggested_department})
+                       Use AI Suggested Route ({triage.routing.suggested_department})
                     </button>
                   </div>
                 </motion.div>
@@ -577,13 +579,13 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                         Other citizens have already reported this underlying civic problem in <strong>{selectedWard}</strong>.
                       </p>
                       <div className="flex items-center space-x-4 mt-2 text-xs font-semibold text-blue-300">
-                        <span>👥 {triage.matchedCivicIssue.affected_citizen_count} citizens affected</span>
-                        <span>📋 {triage.matchedCivicIssue.report_count} reports logged</span>
+                        <span>{triage.matchedCivicIssue.affected_citizen_count} citizens affected</span>
+                        <span>{triage.matchedCivicIssue.report_count} reports logged</span>
                       </div>
                     </div>
                   </div>
                   <div className="p-2 rounded-lg bg-blue-900/60 border border-blue-500/30 text-xs text-blue-200">
-                    💡 <strong>Your report will be automatically attached to this Civic Issue</strong> to amplify community urgency for government action.
+                    <strong>Your report will be automatically attached to this Civic Issue</strong> to amplify community urgency for government action.
                   </div>
                 </motion.div>
               )}
@@ -868,14 +870,14 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                   }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
-                        🏛️ ASSIGNED DEPARTMENT & NODAL OFFICER
+                        ASSIGNED DEPARTMENT & NODAL OFFICER
                       </span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
                         triage.routing.routing_confidence >= 80
                           ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                           : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                       }`}>
-                        🟢 {triage.routing.routing_confidence}% Match
+                        {triage.routing.routing_confidence}% Match
                       </span>
                     </div>
                     <div className="space-y-1 text-xs">

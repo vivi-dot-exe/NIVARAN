@@ -248,7 +248,7 @@ export function performAiTriage(
     `• Designated nodal officer: ${assignedOfficer}.`
   ];
   if (categoryMismatch) {
-    reasonLines.push(`• ⚠️ Category Mismatch: You selected '${selectedCategory}', but AI determined '${department}'.`);
+    reasonLines.push(`• ️ Category Mismatch: You selected '${selectedCategory}', but AI determined '${department}'.`);
   }
 
   const routing: RoutingResult = {

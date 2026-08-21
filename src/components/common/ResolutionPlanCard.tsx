@@ -32,7 +32,7 @@ export const ResolutionPlanCard: React.FC<ResolutionPlanCardProps> = ({
         <div className="flex items-center space-x-2">
           <Sparkles className="w-4 h-4 text-amber-400" />
           <h4 className="text-xs font-black uppercase tracking-wider text-white">
-            {plan.is_multi_agency ? '⚡ Multi-Department Action Plan' : '📋 Resolution Action Plan'}
+            {plan.is_multi_agency ? 'Multi-Department Action Plan' : 'Resolution Action Plan'}
           </h4>
         </div>
         {plan.is_multi_agency && (
@@ -75,7 +75,7 @@ export const ResolutionPlanCard: React.FC<ResolutionPlanCardProps> = ({
                   <div className="flex flex-col items-center my-0.5 space-y-0.5">
                     <ArrowDown className="w-4 h-4 text-amber-400" />
                     <div className="px-2.5 py-0.5 rounded bg-amber-950/80 border border-amber-500/40 text-[9px] text-amber-200 text-center font-medium">
-                      🔒 Step 2 unlocks after Step 1 is completed
+                      Step 2 unlocks after Step 1 is completed
                     </div>
                   </div>
                 )}

@@ -156,7 +156,7 @@ export const GeographicHeatmap: React.FC<GeographicHeatmapProps> = ({
                     "{g.Complaint}"
                   </p>
                   <div className="text-[10px] text-slate-600 pt-1 border-t flex justify-between font-bold">
-                    <span>📍 {g.Ward}</span>
+                    <span> {g.Ward}</span>
                     <span className="text-emerald-700">{g.Status}</span>
                   </div>
                 </div>
