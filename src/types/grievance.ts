@@ -52,6 +52,75 @@ export interface AuditLogEntry {
   status?: string;
 }
 
+export interface Authority {
+  id: string;
+  name: string;
+  type: string;
+  departments: DepartmentType[];
+}
+
+export interface RoutingResult {
+  authority: string;
+  department: DepartmentType;
+  department_name: string;
+  jurisdiction: string;
+  assigned_officer: string;
+  routing_confidence: number; // 0 to 100
+  routing_status: 'Automatically Routed' | 'Provisionally Routed' | 'Requires Human Verification' | 'Officer Overridden' | string;
+  routing_reason: string;
+  requires_human_review: boolean;
+  category_mismatch: boolean;
+  suggested_department: DepartmentType;
+  citizen_selected_category?: string;
+}
+
+export interface RoutingAuditLog {
+  id: number;
+  target_id: string;
+  target_type: 'Ticket' | 'CivicIssue';
+  action: 'AI_ROUTED' | 'CITIZEN_ACCEPTED_SUGGESTION' | 'OFFICER_OVERRIDE';
+  previous_authority?: string;
+  previous_department?: string;
+  new_authority: string;
+  new_department: string;
+  performed_by: string;
+  reason?: string;
+  timestamp: string;
+}
+
+export interface SubIssue {
+  id: string; // e.g. SUB-001
+  title: string;
+  description?: string;
+  category: DepartmentType | string;
+  responsible_authority: string;
+  responsible_department: string;
+  assigned_officer?: string;
+  confidence: number;
+  required_action: string;
+  dependencies: string[]; // List of prerequisite SubIssue IDs (e.g. ["SUB-001"])
+  status: 'Pending' | 'In Progress' | 'Resolved' | 'Blocked' | string;
+}
+
+export interface DependencyLink {
+  from: string; // Prerequisite SubIssue ID
+  to: string;   // Dependent SubIssue ID
+  type?: 'prerequisite' | string;
+  reason: string;
+}
+
+export interface ResolutionPlan {
+  is_multi_agency: boolean;
+  primary_issue_title: string;
+  root_cause: string;
+  affected_infrastructure: string[];
+  sub_issues: SubIssue[];
+  dependencies: DependencyLink[];
+  overall_confidence: number;
+  explainability: string[];
+  routing?: RoutingResult;
+}
+
 export interface Grievance {
   Complaint_ID: string;
   Complaint: string;
@@ -85,18 +154,85 @@ export interface Grievance {
   Audit_Trail?: AuditLogEntry[];
   Cluster_X?: number; // 2D embedding coordinate X
   Cluster_Y?: number; // 2D embedding coordinate Y
+  civic_issue_id?: string; // Foreign key to parent CivicIssue
+  responsible_authority?: string;
+  responsible_department?: DepartmentType;
+  routing_confidence?: number;
+  routing_status?: string;
+  routing_reason?: string;
+  requires_human_review?: boolean;
+  category_mismatch?: boolean;
+  citizen_selected_category?: string;
+  manual_override?: boolean;
+  override_reason?: string;
+  is_multi_agency?: boolean;
+  primary_issue_title?: string;
+  root_cause?: string;
+  resolution_plan?: ResolutionPlan;
+}
+
+export interface CivicIssue {
+  id: string; // e.g. CI-1042
+  issue_title: string;
+  issue_description: string;
+  category: string;
+  subcategory: string;
+  ward: string;
+  latitude: number;
+  longitude: number;
+  status: GrievanceStatus;
+  created_at: string;
+  last_reported_at: string;
+  affected_citizen_count: number;
+  report_count: number;
+  duplicate_count: number;
+  priority_score: number;
+  priority_level: PriorityLevel;
+  severity_score: number;
+  urgency_score: number;
+  scope_score: number;
+  responsible_department: DepartmentType;
+  responsible_authority: string;
+  assigned_officer?: string;
+  routing_confidence?: number;
+  routing_status?: string;
+  routing_reason?: string;
+  requires_human_review?: boolean;
+  category_mismatch?: boolean;
+  citizen_selected_category?: string;
+  manual_override?: boolean;
+  override_reason?: string;
+  overridden_by?: string;
+  override_timestamp?: string;
+  is_multi_agency?: boolean;
+  primary_issue_title?: string;
+  root_cause?: string;
+  affected_infrastructure?: string[];
+  sub_issues?: SubIssue[];
+  dependencies?: DependencyLink[];
+  resolution_plan?: ResolutionPlan;
+  decomposition_confidence?: number;
+  cluster_confidence: number;
+  resolved_at?: string | null;
+  tickets?: Grievance[];
+  growth_rate?: number;
+  is_emerging?: boolean;
 }
 
 export interface ClusterSummary {
   id: string;
   topic: string;
   department: DepartmentType;
-  ward: string;
-  count: number;
-  avgPriority: number;
-  representativeText: string;
-  centerX: number;
-  centerY: number;
+  ward?: string;
+  count?: number;
+  avgPriority?: number;
+  representativeText?: string;
+  ticket_count?: number;
+  representative_complaint?: string;
+  center_x?: number;
+  center_y?: number;
+  centerX?: number;
+  centerY?: number;
   color: string;
 }
 
@@ -109,12 +245,16 @@ export interface TriageResult {
   affectedScope: number;
   baseSeverity: number;
   priorityScore: number;
+  priorityLevel: PriorityLevel;
   priority: PriorityLevel;
   duplicateMatch: Grievance | null;
   similarityScore: number;
   distanceMeters?: number;
   h3Index: string;
   confidence: number;
+  matchedCivicIssue?: CivicIssue | null;
+  routing?: RoutingResult;
+  resolution_plan?: ResolutionPlan;
 }
 
 export interface WardGovernanceMetric {

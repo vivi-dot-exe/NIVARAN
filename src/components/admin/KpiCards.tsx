@@ -13,6 +13,7 @@ import {
 
 interface KpiCardsProps {
   grievances: Grievance[];
+  civicIssues?: import('../../types/grievance').CivicIssue[];
   isDarkMode: boolean;
   onFilterStatus?: (status: string | null) => void;
   currentLanguage?: Language;
@@ -20,6 +21,7 @@ interface KpiCardsProps {
 
 export const KpiCards: React.FC<KpiCardsProps> = ({
   grievances,
+  civicIssues = [],
   isDarkMode,
   onFilterStatus,
   currentLanguage = 'en'
@@ -27,6 +29,10 @@ export const KpiCards: React.FC<KpiCardsProps> = ({
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
   const total = grievances.length;
+  const totalCivicIssues = civicIssues.length;
+  const criticalIssues = civicIssues.filter(iss => iss.priority_level === 'Critical' || iss.priority_score >= 85).length;
+  const affectedCitizensSum = civicIssues.reduce((sum, iss) => sum + iss.affected_citizen_count, 0) || total;
+
   const pending = grievances.filter((g) => g.Status === 'Pending' || g.Status === 'In Progress').length;
   const resolved = grievances.filter((g) => g.Status === 'Resolved').length;
   const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
@@ -35,7 +41,35 @@ export const KpiCards: React.FC<KpiCardsProps> = ({
   const breached = grievances.filter((g) => g.Status === 'Escalated' || (g.Priority_Score >= 90 && g.Status !== 'Resolved')).length;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    <div className="space-y-4">
+      {/* Problem-Centric Overview Banner */}
+      <div className={`p-4 rounded-xl border flex flex-wrap items-center justify-between gap-4 ${
+        isDarkMode ? 'bg-blue-950/40 border-blue-500/30 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-900'
+      }`}>
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
+            ️
+          </div>
+          <div>
+            <h3 className="font-extrabold text-sm text-white">
+              NIVARAN Operational Philosophy: Problem-Centric Civic Governance
+            </h3>
+            <p className="text-xs text-blue-200">
+              Clustered <strong className="text-white font-mono">{total}</strong> citizen reports into <strong className="text-white font-mono">{totalCivicIssues}</strong> active real-world Civic Issues impacting <strong className="text-white font-mono">{affectedCitizensSum}+</strong> citizens.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-3 text-xs font-extrabold">
+          <span className="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40">
+            ️ {criticalIssues} Critical Civic Issues
+          </span>
+          <span className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+             {affectedCitizensSum} Impacted Citizens
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       
       {/* 1. Total Grievances */}
       <div 
@@ -162,5 +196,6 @@ export const KpiCards: React.FC<KpiCardsProps> = ({
       </div>
 
     </div>
-  );
+  </div>
+);
 };

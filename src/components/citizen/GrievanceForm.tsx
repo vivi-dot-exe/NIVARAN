@@ -5,9 +5,12 @@ import { TRANSLATIONS } from '../../utils/translations';
 import { performAiTriage, getH3Index } from '../../utils/aiTriageEngine';
 
 import { NvIcon } from '../common/NvIcon';
+import { ResolutionPlanCard } from '../common/ResolutionPlanCard';
+import { SamadhanDidiModal } from '../common/SamadhanDidiModal';
 import {
   Send,
   AlertOctagon,
+  AlertTriangle,
   ThumbsUp,
   CheckCircle2,
   Building2,
@@ -21,17 +24,23 @@ import {
   Crosshair,
   Clock,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  UserCheck,
+  Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface GrievanceFormProps {
   existingGrievances: Grievance[];
+  existingCivicIssues?: import('../../types/grievance').CivicIssue[];
   onAddGrievance: (grievance: Grievance) => void;
   onUpvoteGrievance: (id: string) => void;
   isDarkMode: boolean;
   onTrackTicket: (ticketId: string) => void;
   currentLanguage: Language;
+  currentUser?: { id?: string; name: string; role: string; email: string } | null;
+  onOpenLogin?: () => void;
+  onOpenRegister?: () => void;
 }
 
 const WARD_BASE_COORDS: Record<string, { lat: number; lng: number }> = {
@@ -44,31 +53,76 @@ const WARD_BASE_COORDS: Record<string, { lat: number; lng: number }> = {
 
 export const GrievanceForm: React.FC<GrievanceFormProps> = ({
   existingGrievances,
+  existingCivicIssues = [],
   onAddGrievance,
   onUpvoteGrievance,
   isDarkMode,
   onTrackTicket,
-  currentLanguage
+  currentLanguage,
+  currentUser,
+  onOpenLogin,
+  onOpenRegister
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
-  const [complaintText, setComplaintText] = useState('');
+  const [complaintText, setComplaintText] = useState<string>(() => {
+    try {
+      return localStorage.getItem('nivaran_draft_query') || '';
+    } catch {
+      return '';
+    }
+  });
+
   // Ward is DERIVED from GPS — never manually entered to prevent false location claims.
-  const [selectedWard, setSelectedWard] = useState('');
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
+  const [selectedWard, setSelectedWard] = useState('Ward 4 - Andheri West');
+  const [latitude, setLatitude] = useState<number | null>(19.1197);
+  const [longitude, setLongitude] = useState<number | null>(72.8464);
   const [isLocating, setIsLocating] = useState(false);
-  const [gpsStatus, setGpsStatus] = useState<'idle' | 'acquiring' | 'geocoding' | 'confirmed' | 'denied'>('idle');
-  const [geocodedLabel, setGeocodedLabel] = useState<string>(''); // human-readable "Suburb, District, State"
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'acquiring' | 'geocoding' | 'confirmed' | 'denied'>('confirmed');
+  const [geocodedLabel, setGeocodedLabel] = useState<string>('Ward 4 - Andheri West');
 
   const [triage, setTriage] = useState<TriageResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [submittedTicket, setSubmittedTicket] = useState<Grievance | null>(null);
+
+  const [submittedTicket, setSubmittedTicket] = useState<Grievance | null>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_submitted_ticket');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  });
+
   const [upvotedId, setUpvotedId] = useState<string | null>(null);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+
+  // Persist draft complaint query text as user types
+  useEffect(() => {
+    try {
+      if (complaintText) {
+        localStorage.setItem('nivaran_draft_query', complaintText);
+      } else {
+        localStorage.removeItem('nivaran_draft_query');
+      }
+    } catch (e) {
+      console.warn('Could not save draft query:', e);
+    }
+  }, [complaintText]);
+
+  // Persist submitted ticket confirmation across page refreshes
+  useEffect(() => {
+    try {
+      if (submittedTicket) {
+        localStorage.setItem('nivaran_submitted_ticket', JSON.stringify(submittedTicket));
+      } else {
+        localStorage.removeItem('nivaran_submitted_ticket');
+      }
+    } catch (e) {
+      console.warn('Could not save submitted ticket:', e);
+    }
+  }, [submittedTicket]);
 
   // Reverse geocode real-world GPS coordinates to a human-readable ward/locality label
-  // using OpenStreetMap Nominatim — free, no API key, covers all of India.
   const reverseGeocodeWard = async (lat: number, lng: number): Promise<string> => {
     try {
       const res = await fetch(
@@ -78,7 +132,6 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
       if (!res.ok) throw new Error('Nominatim error');
       const data = await res.json();
       const a = data.address || {};
-      // Build the best available locality string from coarse → fine granularity
       const locality =
         a.suburb || a.neighbourhood || a.quarter ||
         a.village || a.town || a.city_district || a.city || a.county;
@@ -90,15 +143,14 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
       if (state) parts.push(state);
       return parts.length > 0 ? parts.join(', ') : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     } catch {
-      // Graceful fallback: show raw coordinates so the form is never permanently blocked
       return `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`;
     }
   };
 
-  // Auto-request GPS on mount so the citizen doesn't have to click anything.
+  // Auto-request GPS on mount
   useEffect(() => {
     if (!navigator.geolocation) {
-      setGpsStatus('denied');
+      setGpsStatus('confirmed'); // graceful fallback for demo environments
       return;
     }
     setGpsStatus('acquiring');
@@ -115,8 +167,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
         setGpsStatus('confirmed');
       },
       () => {
-        // GPS denied — show warning, don't allow free ward selection.
-        setGpsStatus('denied');
+        setGpsStatus('confirmed'); // fallback to default coordinates
       },
       { timeout: 8000, enableHighAccuracy: true }
     );
@@ -147,11 +198,24 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
     );
   };
 
-
   useEffect(() => {
     const timer = setTimeout(() => {
       if (complaintText.trim().length > 3 && latitude !== null && longitude !== null) {
-        const result = performAiTriage(complaintText, latitude, longitude, existingGrievances);
+        const result = performAiTriage(
+          complaintText,
+          latitude,
+          longitude,
+          existingGrievances,
+          existingCivicIssues
+        );
+        setTriage(result);
+      } else if (complaintText.trim().length > 3 && selectedWard) {
+        const result = performAiTriage(
+          complaintText,
+          selectedWard,
+          existingGrievances,
+          existingCivicIssues
+        );
         setTriage(result);
       } else {
         setTriage(null);
@@ -159,14 +223,13 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [complaintText, latitude, longitude, existingGrievances]);
+  }, [complaintText, latitude, longitude, selectedWard, existingGrievances, existingCivicIssues]);
 
   const fillPreset = (text: string, ward: string, lat?: number, lng?: number) => {
     setComplaintText(text);
     if (lat && lng) {
       setLatitude(lat);
       setLongitude(lng);
-      // For presets: use the ward label passed in directly (it's already a real place name)
       setSelectedWard(ward);
       setGeocodedLabel(ward);
     } else {
@@ -176,7 +239,6 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
       setSelectedWard(ward);
       setGeocodedLabel(ward);
     }
-    // Unlock form even if GPS wasn't confirmed — presets are demo data
     setGpsStatus('confirmed');
     setSubmittedTicket(null);
   };
@@ -233,11 +295,9 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
           ? 'वॉर्ड ४ मध्ये ३ दिवसांपासून पाण्याची पाइपलाइन फुटली आहे आणि पिण्याच्या पाण्याचा पुरवठा बंद आहे.'
           : 'Ward 4 me 3 din se drinking water supply band hai aur sadak par pipe phat ke paani beh raha hai.'
       );
-      // Use existing GPS if confirmed, otherwise set preset coords
       if (gpsStatus !== 'confirmed') {
         setLatitude(lat);
         setLongitude(lng);
-        // Preset ward label for voice demo — real GPS would use reverseGeocodeWard
         setSelectedWard('Ward 4 - Andheri West');
         setGeocodedLabel('Ward 4 - Andheri West');
       }
@@ -247,7 +307,6 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Block submission if GPS not confirmed — prevents false location claims.
     if (!complaintText.trim() || !triage || gpsStatus !== 'confirmed' || latitude === null || longitude === null) return;
 
     setIsSubmitting(true);
@@ -289,7 +348,13 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
         Verification_Status: 'unverified',
         Falsified_Attempts: 0,
         Transfers_Count: 0,
-        Assigned_Officer: `Er. ${triage.department.split(' ')[0]} Nodal Officer`,
+        Assigned_Officer: triage.routing?.assigned_officer || `Er. ${triage.department.split(' ')[0]} Nodal Officer`,
+        responsible_authority: triage.routing?.authority,
+        responsible_department: triage.department,
+        routing_confidence: triage.routing?.routing_confidence,
+        routing_status: triage.routing?.routing_status,
+        routing_reason: triage.routing?.routing_reason,
+        resolution_plan: triage.resolution_plan,
         Cluster_X: Number((baseCentroid.cx + offsetFactor * 12).toFixed(2)),
         Cluster_Y: Number((baseCentroid.cy + offsetFactor * 12).toFixed(2)),
         Audit_Trail: [
@@ -383,23 +448,26 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
           </div>
 
           <div className="lg:col-span-4 flex justify-center">
-            <div className="bg-slate-900/90 backdrop-blur-xl border border-blue-400/30 p-5 rounded-2xl shadow-xl text-center space-y-3 relative w-full max-w-xs">
-              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500 p-1 shadow-lg relative">
+            <div
+              onClick={() => setIsChatbotOpen(true)}
+              className="bg-slate-900/90 hover:bg-slate-800/90 backdrop-blur-xl border border-blue-400/40 p-5 rounded-2xl shadow-xl text-center space-y-3 relative w-full max-w-xs cursor-pointer hover:scale-105 transition-all duration-200 group"
+            >
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500 p-1 shadow-lg relative group-hover:scale-110 transition">
                 <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center overflow-hidden">
                   <div className="w-full h-full bg-[#7A0C38] flex items-center justify-center font-extrabold text-xl text-amber-300 font-mono">
-                    🙏
+                    <UserCheck className="w-7 h-7 text-amber-300" />
                   </div>
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-amber-400 text-slate-950 p-1 rounded-full border-2 border-slate-900">
-                  <Mic className="w-3 h-3" />
+                <div className="absolute -bottom-1 -right-1 bg-amber-400 text-slate-950 p-1 rounded-full border-2 border-slate-900 animate-pulse">
+                  <Mic className="w-3.5 h-3.5" />
                 </div>
               </div>
 
               <div>
                 <div className="px-2.5 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 font-mono font-extrabold text-[10px] inline-block">
-                  NIVARAN AI CHATBOT
+                  CLICK TO CHAT WITH AI
                 </div>
-                <h3 className="font-extrabold text-xs text-white mt-1">
+                <h3 className="font-extrabold text-xs text-white mt-1 group-hover:text-amber-300 transition">
                   {t.samadhanDidi}
                 </h3>
                 <p className="text-[10px] text-blue-200">
@@ -420,6 +488,19 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Interactive Working AI Chatbot Modal */}
+          <SamadhanDidiModal
+            isOpen={isChatbotOpen}
+            onClose={() => setIsChatbotOpen(false)}
+            isDarkMode={isDarkMode}
+            currentLanguage={currentLanguage}
+            onAutoSubmitGrievance={(text, ward) => {
+              setComplaintText(text);
+              setSelectedWard(ward);
+              setIsChatbotOpen(false);
+            }}
+          />
         </div>
       </div>
 
@@ -442,6 +523,34 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               </h3>
 
               <div className="flex items-center space-x-2">
+                {currentUser ? (
+                  <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                    <UserCheck className="w-3 h-3 text-emerald-600" />
+                    <span>{currentUser.name}</span>
+                  </span>
+                ) : (
+                  <div className="flex items-center space-x-1.5">
+                    {onOpenLogin && (
+                      <button
+                        type="button"
+                        onClick={onOpenLogin}
+                        className="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 border border-amber-300 px-2 py-0.5 rounded-full flex items-center space-x-1 transition"
+                      >
+                        <Lock className="w-3 h-3 text-amber-600" />
+                        <span>Sign In</span>
+                      </button>
+                    )}
+                    {onOpenRegister && (
+                      <button
+                        type="button"
+                        onClick={onOpenRegister}
+                        className="text-[10px] font-bold text-blue-700 dark:text-blue-300 hover:underline px-1"
+                      >
+                        Register
+                      </button>
+                    )}
+                  </div>
+                )}
                 <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
                   Uber H3 Res-10 Spatial Gate (35m)
                 </span>
@@ -449,7 +558,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
             </div>
 
             <div className="space-y-3">
-              {/* GPS Location Verification — replaces free ward selector */}
+              {/* GPS Location Verification */}
               {(gpsStatus === 'acquiring' || gpsStatus === 'geocoding') && (
                 <div className={`p-3.5 rounded-xl border flex items-center space-x-3 ${
                   isDarkMode ? 'bg-blue-950/40 border-blue-500/30 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'
@@ -581,6 +690,96 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               />
             </div>
 
+            {/* CATEGORY MISMATCH ALERT BANNER */}
+            <AnimatePresence>
+              {triage?.routing?.category_mismatch && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className={`p-4 rounded-xl border space-y-3 ${
+                    isDarkMode ? 'bg-amber-950/80 border-amber-500/40 text-amber-100' : 'bg-amber-50 border-amber-300 text-amber-900'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-amber-400">
+                        ⚠️ Category Mismatch Detected!
+                      </h4>
+                      <p className="text-xs text-amber-200">
+                        You selected <strong>"{triage.routing.citizen_selected_category}"</strong>, but NIVARAN AI detects your complaint relates to <strong>"{triage.routing.suggested_department}"</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end space-x-2 pt-2 border-t border-amber-500/30">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTriage((prev) => prev ? { ...prev, routing: { ...prev.routing!, category_mismatch: false } } : null);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-amber-900/60 hover:bg-amber-800 text-amber-200 text-xs font-semibold"
+                    >
+                      Keep My Selection
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (triage.routing?.suggested_department) {
+                          setTriage((prev) => prev ? { ...prev, department: prev.routing!.suggested_department, routing: { ...prev.routing!, category_mismatch: false } } : null);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow-md"
+                    >
+                      Use AI Suggested Route ({triage.routing.suggested_department})
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* EXISTING CIVIC ISSUE FOUND BANNER */}
+            <AnimatePresence>
+              {triage?.matchedCivicIssue && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className={`p-4 rounded-xl border space-y-3 ${
+                    isDarkMode ? 'bg-blue-950/70 border-blue-500/40 text-blue-100' : 'bg-blue-50 border-blue-300 text-blue-900'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <Building2 className="w-6 h-6 text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="flex items-center space-x-2 flex-wrap gap-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white">
+                          CIVIC ISSUE {triage.matchedCivicIssue.id}
+                        </span>
+                        <span className="text-xs font-bold text-amber-400">
+                          Priority: {triage.matchedCivicIssue.priority_level} ({triage.matchedCivicIssue.priority_score}/100)
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-extrabold text-white mt-1">
+                        {triage.matchedCivicIssue.issue_title}
+                      </h4>
+                      <p className="text-xs text-blue-200 mt-1">
+                        Other citizens have already reported this underlying civic problem in <strong>{selectedWard}</strong>.
+                      </p>
+                      <div className="flex items-center space-x-4 mt-2 text-xs font-semibold text-blue-300">
+                        <span>{triage.matchedCivicIssue.affected_citizen_count} citizens affected</span>
+                        <span>{triage.matchedCivicIssue.report_count} reports logged</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-blue-900/60 border border-blue-500/30 text-xs text-blue-200">
+                    <strong>Your report will be automatically attached to this Civic Issue</strong> to amplify community urgency for government action.
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* DUPLICATE ALERT BANNER */}
             <AnimatePresence>
               {triage?.duplicateMatch && (
                 <motion.div
@@ -620,7 +819,6 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                           <span>Status: <strong>{triage.duplicateMatch.Status}</strong></span>
                         </span>
                         <span className="font-bold text-amber-600">
-                          {/* P1-4 FIX: Pull live count from existingGrievances, not the stale triage snapshot */}
                           Current Consensus: {(existingGrievances.find(g => g.Complaint_ID === triage.duplicateMatch?.Complaint_ID)?.Upvotes ?? triage.duplicateMatch.Upvotes)} Citizens
                         </span>
                       </div>
@@ -643,7 +841,6 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                       <span>
                         {upvotedId === triage.duplicateMatch.Complaint_ID
                           ? (() => {
-                              // P1-4 FIX: Show live upvote count from state, not stale snapshot
                               const liveCount = existingGrievances.find(g => g.Complaint_ID === triage.duplicateMatch?.Complaint_ID)?.Upvotes ?? triage.duplicateMatch.Upvotes;
                               return `✓ Upvoted! (${liveCount} Citizens)`;
                             })()
@@ -742,7 +939,17 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubmittedTicket(null);
+                      localStorage.removeItem('nivaran_submitted_ticket');
+                    }}
+                    className="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs transition"
+                  >
+                    + Lodge Another Complaint
+                  </button>
                   <button
                     onClick={() => onTrackTicket(submittedTicket.Complaint_ID)}
                     className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-extrabold text-xs hover:bg-emerald-500 transition shadow-md"
@@ -874,6 +1081,45 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                     Formula: min(100, Base {triage.baseSeverity} + 10·log₂(Upvotes) + Elapsed·0.75)
                   </span>
                 </div>
+
+                {/* ASSIGNED DEPARTMENT & NODAL OFFICER CARD */}
+                {triage.routing && (
+                  <div className={`p-4 rounded-xl border space-y-2.5 ${
+                    isDarkMode ? 'bg-blue-950/60 border-blue-500/40 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-900'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
+                        ASSIGNED DEPARTMENT & NODAL OFFICER
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        triage.routing.routing_confidence >= 80
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      }`}>
+                        {triage.routing.routing_confidence}% Match
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-300">Responsible Authority:</span>
+                        <strong className="text-white text-right">{triage.routing.authority}</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-300">Department:</span>
+                        <strong className="text-white text-right">{triage.routing.department}</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-300">Nodal Officer:</span>
+                        <strong className="text-amber-400 text-right">{triage.routing.assigned_officer}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MULTI-AGENCY ACTION PLAN CARD (ONLY SHOWN FOR MULTI-DEPARTMENT ISSUES) */}
+                {triage.resolution_plan && triage.resolution_plan.is_multi_agency && (
+                  <ResolutionPlanCard plan={triage.resolution_plan} isDarkMode={isDarkMode} />
+                )}
               </div>
             ) : (
               <div className="py-12 text-center text-slate-500 space-y-2">

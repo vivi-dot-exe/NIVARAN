@@ -195,7 +195,7 @@ export const BerTopicScatter: React.FC<BerTopicScatterProps> = ({
                         "{data.Complaint}"
                       </p>
                       <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400">
-                        <span>📍 {data.Ward}</span>
+                        <span> {data.Ward}</span>
                         <span className="font-bold text-sky-400">{data.Department}</span>
                       </div>
                     </div>

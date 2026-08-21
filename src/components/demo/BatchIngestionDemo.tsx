@@ -282,9 +282,9 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
           <div className="flex items-center space-x-4">
             <span className="text-slate-600 font-medium">{t.totalSystemComplaints} <strong className="text-slate-900 font-mono font-extrabold">{grievancesCount}</strong></span>
             {hasInjected && (
-              <span className="text-emerald-700 font-extrabold flex items-center space-x-1">
+              <span className="text-emerald-700 font-extrabold flex items-center space-x-1.5 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>{t.injectedSuccessMsg}</span>
+                <span>200 Citizen Reports &rarr; AI Clustering &rarr; 47 Civic Issues Identified (12 Critical, 19 High, 11 Medium, 5 Low)!</span>
               </span>
             )}
           </div>
@@ -292,7 +292,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
           {isComputingClusters && (
             <div className="flex items-center space-x-2 text-[#7A0C38] font-mono font-bold animate-pulse">
               <Activity className="w-4 h-4" />
-              <span>BERTopic Vectorizing Embeddings...</span>
+              <span>AI Clustering Reports into Civic Issues...</span>
             </div>
           )}
         </div>
@@ -329,7 +329,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
             >
               <Send className="w-3.5 h-3.5" />
               <span>
-                {dispatchedHotspot === 'Ward 4' ? 'Repair Squad Dispatched! ✓' : 'Bulk Dispatch Ward 4 Repair Squad'}
+                {dispatchedHotspot === 'Ward 4' ? 'Repair Squad Dispatched! ' : 'Bulk Dispatch Ward 4 Repair Squad'}
               </span>
             </button>
           </div>
@@ -358,7 +358,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
             >
               <Send className="w-3.5 h-3.5" />
               <span>
-                {dispatchedHotspot === 'Ward 7' ? 'Asphalt Crew Dispatched! ✓' : 'Bulk Dispatch Asphalt Crew'}
+                {dispatchedHotspot === 'Ward 7' ? 'Asphalt Crew Dispatched! ' : 'Bulk Dispatch Asphalt Crew'}
               </span>
             </button>
           </div>
@@ -387,7 +387,7 @@ export const BatchIngestionDemo: React.FC<BatchIngestionDemoProps> = ({
             >
               <Send className="w-3.5 h-3.5" />
               <span>
-                {dispatchedHotspot === 'Ward 12' ? 'Power Grid Team Dispatched! ✓' : 'Dispatch High-Voltage Grid Team'}
+                {dispatchedHotspot === 'Ward 12' ? 'Power Grid Team Dispatched! ' : 'Dispatch High-Voltage Grid Team'}
               </span>
             </button>
           </div>

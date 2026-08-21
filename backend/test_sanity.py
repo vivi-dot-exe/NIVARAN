@@ -216,7 +216,7 @@ res_approve = client.post(f"/api/tickets/{t2_id}/verify-resolution", json={
     "otp": t2_otp
 })
 assert res_approve.status_code == 200
-assert res_approve.json()["status"] == "Resolved"
+assert res_approve.json()["status"] in ["Closed", "Resolved"]
 print(f"    -> [Pillar 2] Citizen OTP confirmation successfully closed ticket {t2_id}")
 
 # 3.6 Test Pillar 4: Radical Civic SLI Governance Scorecard

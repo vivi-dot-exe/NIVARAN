@@ -316,7 +316,7 @@ export async function analyzeTextApi(text: string): Promise<AnalyzeResponse> {
   return res.json();
 }
 
-export async function uploadFileApi(file: File): Promise<{ message: string; records_added: number }> {
+export async function uploadFileApi(file: File): Promise<{ message: string; records_added: number; civic_issues_count?: number }> {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -328,3 +328,189 @@ export async function uploadFileApi(file: File): Promise<{ message: string; reco
   return res.json();
 }
 
+export async function fetchCivicIssuesApi(): Promise<import('../types/grievance').CivicIssue[]> {
+  const res = await fetch(`${API_BASE_URL}/api/civic-issues`);
+  if (!res.ok) throw new Error('Failed to fetch civic issues from FastAPI backend');
+  return res.json();
+}
+
+export async function updateCivicIssueStatusApi(
+  issueId: string,
+  status: string,
+  responsibleAuthority?: string
+): Promise<import('../types/grievance').CivicIssue> {
+  const res = await fetch(`${API_BASE_URL}/api/civic-issues/${issueId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, responsible_authority: responsibleAuthority })
+  });
+  if (!res.ok) throw new Error('Failed to update civic issue in FastAPI backend');
+  return res.json();
+}
+
+export async function analyzeRoutingApi(
+  text: string,
+  selectedCategory?: string,
+  ward?: string
+): Promise<import('../types/grievance').RoutingResult> {
+  const res = await fetch(`${API_BASE_URL}/api/routing/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, selected_category: selectedCategory, ward })
+  });
+  if (!res.ok) throw new Error('Failed to analyze routing in FastAPI backend');
+  return res.json();
+}
+
+export async function fetchRoutingReviewQueueApi(): Promise<import('../types/grievance').CivicIssue[]> {
+  const res = await fetch(`${API_BASE_URL}/api/routing/review-queue`);
+  if (!res.ok) throw new Error('Failed to fetch routing review queue');
+  return res.json();
+}
+
+export async function overrideRoutingApi(
+  targetId: string,
+  authority: string,
+  department: string,
+  assignedOfficer?: string,
+  reason?: string,
+  officerName?: string
+): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/routing/${targetId}/override`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ authority, department, assigned_officer: assignedOfficer, reason, officer_name: officerName })
+  });
+  if (!res.ok) throw new Error('Failed to override routing in FastAPI backend');
+  return res.json();
+}
+
+export async function decomposeGrievanceApi(
+  text: string,
+  selectedCategory?: string,
+  ward?: string
+): Promise<import('../types/grievance').ResolutionPlan> {
+  const res = await fetch(`${API_BASE_URL}/api/ai/decompose`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, selected_category: selectedCategory, ward })
+  });
+  if (!res.ok) throw new Error('Failed to decompose grievance in FastAPI backend');
+  return res.json();
+}
+
+export async function reviewResolutionPlanApi(
+  issueId: string,
+  planOverride: Record<string, unknown>
+): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/civic-issues/${issueId}/review-plan`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(planOverride)
+  });
+  if (!res.ok) throw new Error('Failed to review resolution plan in FastAPI backend');
+  return res.json();
+}
+
+// TOKEN MANAGEMENT HELPERS
+export function getAuthToken(): string | null {
+  try {
+    return localStorage.getItem('nivaran_jwt_token');
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthToken(token: string): void {
+  try {
+    localStorage.setItem('nivaran_jwt_token', token);
+  } catch (e) {
+    console.warn('Failed to save auth token:', e);
+  }
+}
+
+export function clearAuthToken(): void {
+  try {
+    localStorage.removeItem('nivaran_jwt_token');
+    localStorage.removeItem('nivaran_user_session');
+  } catch (e) {
+    console.warn('Failed to clear auth token:', e);
+  }
+}
+
+function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+// AUTHENTICATION API CALLS
+export async function registerApi(data: {
+  full_name: string;
+  email: string;
+  mobile_number?: string;
+  password: string;
+  address?: string;
+  ward?: string;
+  preferred_language?: string;
+}): Promise<{ status: string; token: string; user: any }> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.detail || 'Registration failed');
+  }
+  const result = await res.json();
+  if (result.token) setAuthToken(result.token);
+  return result;
+}
+
+export async function loginApi(
+  loginId: string,
+  password: string,
+  authType: string = 'citizen'
+): Promise<{ status: string; token: string; user: any }> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login_id: loginId, password, auth_type: authType })
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.detail || 'Login failed');
+  }
+  const result = await res.json();
+  if (result.token) setAuthToken(result.token);
+  return result;
+}
+
+export async function fetchCurrentUserApi(): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) throw new Error('Failed to fetch user profile');
+  return res.json();
+}
+
+export async function fetchMyComplaintsApi(): Promise<Grievance[]> {
+  const res = await fetch(`${API_BASE_URL}/api/citizens/me/complaints`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) throw new Error('Failed to fetch citizen complaints');
+  const data: BackendTicket[] = await res.json();
+  return data.map(mapBackendTicketToGrievance);
+}
+
+export async function fetchOfficerIssuesApi(): Promise<import('../types/grievance').CivicIssue[]> {
+  const res = await fetch(`${API_BASE_URL}/api/officers/me/issues`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) throw new Error('Failed to fetch officer assigned issues');
+  return res.json();
+}

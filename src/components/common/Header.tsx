@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Language } from '../../utils/translations';
-import { TRANSLATIONS } from '../../utils/translations';
+import { TRANSLATIONS, INDIAN_OFFICIAL_LANGUAGES } from '../../utils/translations';
 import {
   ShieldCheck,
   UserCheck,
@@ -35,7 +35,8 @@ interface HeaderProps {
   onOpenSiteMap: () => void;
   onGoHome: () => void;
   onOpenSignIn: () => void;
-  currentUser: { name: string; role: string; email: string } | null;
+  onOpenRegister?: () => void;
+  currentUser: { id?: string; name: string; role: string; email: string; ward?: string } | null;
   onSignOut: () => void;
 }
 
@@ -53,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSiteMap,
   onGoHome,
   onOpenSignIn,
+  onOpenRegister,
   currentUser,
   onSignOut
 }) => {
@@ -78,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Backend Connection Indicator */}
           <div className="flex items-center space-x-1 font-mono font-bold text-[10px] px-2 py-0.5 rounded bg-black/30 border border-white/20">
             <Server className="w-3 h-3 text-amber-300" style={{ width: '12px', height: '12px' }} />
-            <span>{isBackendConnected ? '🟢 FastAPI Live (port 8000)' : '🟡 Client AI Triage Mode'}</span>
+            <span>{isBackendConnected ? 'FastAPI Live (port 8000)' : 'Client AI Triage Mode'}</span>
           </div>
 
           <span>|</span>
@@ -129,7 +131,6 @@ export const Header: React.FC<HeaderProps> = ({
         isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
       }`}>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          
           {/* Ashoka Lion Capital Emblem & Department Title */}
           <div className="flex items-center space-x-4">
             <div className="w-14 h-16 shrink-0 flex flex-col items-center justify-center p-1 bg-amber-50/50 rounded-xl border border-amber-200/40" style={{ width: '56px', height: '64px', minWidth: '56px' }}>
@@ -146,7 +147,10 @@ export const Header: React.FC<HeaderProps> = ({
               </svg>
               <span className="text-[9px] font-black tracking-widest text-[#7A0C38] uppercase mt-0.5">सत्यमेव जयते</span>
             </div>
+          </div>
 
+          {/* Department Title & Badges (CENTER/RIGHT) */}
+          <div className="flex items-center space-x-4 text-right md:text-right">
             <div>
               <div className="flex items-center space-x-2">
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#7A0C38] text-white">
@@ -279,17 +283,19 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Real-time Language Selector Dropdown */}
-            <div className="flex items-center space-x-1 bg-[#5C082A] px-2.5 py-1 rounded border border-[#961247]">
+            {/* Real-time Language Selector Dropdown (All Official Languages of India) */}
+            <div className="flex items-center space-x-1 bg-[#5C082A] px-2 py-1 rounded border border-[#961247]">
               <Globe className="w-3.5 h-3.5 text-amber-300" style={{ width: '14px', height: '14px' }} />
               <select
                 value={currentLanguage}
                 onChange={(e) => onLanguageChange(e.target.value as Language)}
-                className="bg-transparent text-white font-medium text-xs focus:outline-none cursor-pointer"
+                className="bg-transparent text-white font-medium text-xs focus:outline-none cursor-pointer max-w-[140px] sm:max-w-none"
               >
-                <option value="en" className="bg-slate-900 text-white">Language: English</option>
-                <option value="hi" className="bg-slate-900 text-white">भाषा: हिंदी</option>
-                <option value="mr" className="bg-slate-900 text-white">भाषा: मराठी</option>
+                {INDIAN_OFFICIAL_LANGUAGES.map((lang) => (
+                  <option key={lang.code} value={lang.code} className="bg-slate-900 text-white">
+                    {lang.name} ({lang.nativeName})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -316,23 +322,38 @@ export const Header: React.FC<HeaderProps> = ({
             {currentUser ? (
               <div className="flex items-center space-x-2 bg-[#5C082A] px-3 py-1 rounded border border-amber-400/50 text-amber-300">
                 <User className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-extrabold truncate max-w-[130px]">{currentUser.name}</span>
+                <div className="flex flex-col text-left">
+                  <span className="font-extrabold text-xs truncate max-w-[130px]">{currentUser.name}</span>
+                  <span className="text-[9px] font-mono text-amber-200">
+                    {currentUser.role === 'SUPER_ADMIN' ? 'Admin' : currentUser.role === 'NODAL_OFFICER' ? 'Nodal Officer' : 'Citizen'}
+                  </span>
+                </div>
                 <button
                   onClick={onSignOut}
-                  className="p-1 rounded hover:bg-black/30 text-rose-300 transition"
+                  className="p-1 rounded hover:bg-black/30 text-rose-300 transition ml-1"
                   title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <button
-                onClick={onOpenSignIn}
-                className="px-4 py-1.5 rounded bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow-sm flex items-center space-x-1 cursor-pointer"
-              >
-                <span>{t.signIn}</span>
-                <span>&rarr;</span>
-              </button>
+              <div className="flex items-center space-x-1.5">
+                {onOpenRegister && (
+                  <button
+                    onClick={onOpenRegister}
+                    className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-sm"
+                  >
+                    Log In
+                  </button>
+                )}
+                <button
+                  onClick={onOpenSignIn}
+                  className="px-2.5 py-1 rounded bg-[#5C082A] hover:bg-[#961247] border border-amber-400/40 text-amber-300 font-extrabold text-xs transition flex items-center space-x-1"
+                >
+                  <Lock className="w-3 h-3 text-amber-300" />
+                  <span>Sign In</span>
+                </button>
+              </div>
             )}
           </div>
 

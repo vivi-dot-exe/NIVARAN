@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Grievance } from '../../types/grievance';
 import type { Language } from '../../utils/translations';
 import { TRANSLATIONS } from '../../utils/translations';
+import { ResolutionPlanCard } from '../common/ResolutionPlanCard';
 import {
   Search,
   Clock,
@@ -22,6 +23,7 @@ import { motion } from 'framer-motion';
 
 interface CitizenTrackerProps {
   grievances: Grievance[];
+  civicIssues?: import('../../types/grievance').CivicIssue[];
   initialTicketId?: string;
   isDarkMode: boolean;
   currentLanguage?: Language;
@@ -30,6 +32,7 @@ interface CitizenTrackerProps {
 
 export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
   grievances,
+  civicIssues = [],
   initialTicketId = 'G-1001',
   isDarkMode,
   currentLanguage = 'en',
@@ -37,10 +40,36 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
-  const [searchId, setSearchId] = useState(initialTicketId);
-  const [activeTicket, setActiveTicket] = useState<Grievance | null>(
-    grievances.find((g) => g.Complaint_ID.toUpperCase() === initialTicketId.toUpperCase()) || grievances[0] || null
-  );
+  const [searchId, setSearchId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_tracking_ticket_id');
+      if (saved) return saved;
+    } catch {}
+    return initialTicketId;
+  });
+
+  const [activeTicket, setActiveTicket] = useState<Grievance | null>(() => {
+    const query = (localStorage.getItem('nivaran_tracking_ticket_id') || initialTicketId).trim().toLowerCase();
+    return grievances.find((g) => g.Complaint_ID.toLowerCase() === query) || grievances[0] || null;
+  });
+
+  // Find parent Civic Issue for active ticket
+  const parentIssue = activeTicket
+    ? civicIssues.find(
+        (iss) =>
+          iss.id === activeTicket.civic_issue_id ||
+          (iss.ward === activeTicket.Ward && iss.category === activeTicket.Department)
+      )
+    : null;
+
+  // Sync active ticket when grievances or initialTicketId prop updates
+  useEffect(() => {
+    if (initialTicketId) {
+      setSearchId(initialTicketId);
+      const found = grievances.find((g) => g.Complaint_ID.toLowerCase() === initialTicketId.toLowerCase().trim());
+      if (found) setActiveTicket(found);
+    }
+  }, [initialTicketId, grievances]);
 
   // Verification state
   const [enteredOtp, setEnteredOtp] = useState('');
@@ -59,8 +88,14 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    const query = searchId.trim();
+    try {
+      localStorage.setItem('nivaran_tracking_ticket_id', query);
+    } catch (err) {
+      console.warn('Failed to save tracking ticket ID:', err);
+    }
     const found = grievances.find(
-      (g) => g.Complaint_ID.toLowerCase() === searchId.toLowerCase().trim()
+      (g) => g.Complaint_ID.toLowerCase() === query.toLowerCase()
     );
     if (found) {
       setActiveTicket(found);
@@ -251,6 +286,38 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
               </div>
 
               <div className="space-y-3 text-xs">
+                {/* PARENT CIVIC ISSUE CARD */}
+                {parentIssue && (
+                  <div className={`p-4 rounded-xl border space-y-2 ${
+                    isDarkMode ? 'bg-blue-950/60 border-blue-500/40 text-blue-100' : 'bg-blue-50 border-blue-300 text-blue-900'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white">
+                        PARENT CIVIC ISSUE #{parentIssue.id}
+                      </span>
+                      <span className="text-xs font-bold text-amber-400">
+                        Priority: {parentIssue.priority_level} ({parentIssue.priority_score}/100)
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-extrabold text-white">
+                      {parentIssue.issue_title}
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-1 font-semibold text-blue-200">
+                      <div className="p-2 rounded bg-blue-900/40 border border-blue-500/20">
+                        <span className="block text-[10px] text-blue-300">Affected Citizens</span>
+                        <strong className="text-white text-sm"> {parentIssue.affected_citizen_count} citizens</strong>
+                      </div>
+                      <div className="p-2 rounded bg-blue-900/40 border border-blue-500/20">
+                        <span className="block text-[10px] text-blue-300">Total Reports</span>
+                        <strong className="text-white text-sm"> {parentIssue.report_count} reports</strong>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-blue-300 italic pt-1">
+                      Your report <strong>#{activeTicket.Complaint_ID}</strong> is part of this overall civic problem.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <span className="text-slate-500 font-bold block mb-1">{t.originalText}</span>
                   <p className={`p-3 rounded-xl border leading-relaxed font-medium ${
@@ -290,9 +357,38 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                     <span>{t.nodalOfficer}</span>
                   </span>
                   <span className="font-extrabold text-[#7A0C38]">
-                    {activeTicket.Assigned_Officer || 'Unassigned'}
+                    {activeTicket.Assigned_Officer || 'Ward Nodal Officer (Er. Rajesh Sharma)'}
                   </span>
                 </div>
+
+                {/* ASSIGNED DEPARTMENT & AUTHORITY CARD */}
+                <div className={`p-4 rounded-xl border space-y-2 font-sans ${
+                  isDarkMode ? 'bg-blue-950/60 border-blue-500/40 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-900'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
+                      ASSIGNED DEPARTMENT & AUTHORITY
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      {activeTicket.routing_confidence || 94}% Match
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-xs font-semibold">
+                    <div className="flex items-center justify-between">
+                      <span className="text-blue-300">Responsible Authority:</span>
+                      <strong className="text-white text-right">{activeTicket.responsible_authority || 'Municipal Corporation of Greater Mumbai'}</strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-blue-300">Department:</span>
+                      <strong className="text-white text-right">{activeTicket.Department}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* MULTI-AGENCY RESOLUTION PLAN CARD (ONLY FOR MULTI-DEPARTMENT ISSUES) */}
+                {activeTicket.resolution_plan && activeTicket.resolution_plan.is_multi_agency && (
+                  <ResolutionPlanCard plan={activeTicket.resolution_plan} isDarkMode={isDarkMode} />
+                )}
 
                 <div className={`p-3 rounded-xl border flex items-center justify-between ${
                   isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
@@ -533,7 +629,7 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                 {/* Step 1 */}
                 <div className="relative flex items-start space-x-4">
                   <div className="absolute -left-6 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                    ✓
+                    
                   </div>
                   <div>
                     <h4 className={`font-extrabold text-sm ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
@@ -555,7 +651,7 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                       ? 'bg-emerald-600 text-white'
                       : 'bg-slate-200 text-slate-600 border border-slate-300'
                   }`}>
-                    {getStepIndex(activeTicket.Status) >= 1 ? '✓' : '2'}
+                    {getStepIndex(activeTicket.Status) >= 1 ? '' : '2'}
                   </div>
                   <div>
                     <h4 className={`font-extrabold text-sm ${
@@ -581,7 +677,7 @@ export const CitizenTracker: React.FC<CitizenTrackerProps> = ({
                       ? 'bg-emerald-600 text-white'
                       : 'bg-slate-200 text-slate-600 border border-slate-300'
                   }`}>
-                    {getStepIndex(activeTicket.Status) >= 2 ? '✓' : '3'}
+                    {getStepIndex(activeTicket.Status) >= 2 ? '' : '3'}
                   </div>
                   <div>
                     <h4 className={`font-extrabold text-sm ${

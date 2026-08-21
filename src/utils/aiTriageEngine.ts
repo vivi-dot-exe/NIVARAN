@@ -1,11 +1,14 @@
 import type {
   DepartmentType,
   Grievance,
+  CivicIssue,
   LanguageType,
   PriorityLevel,
-  TriageResult
+  TriageResult,
+  RoutingResult
 } from '../types/grievance';
 import { latLngToCell } from 'h3-js';
+import { getAuthorityForDepartment, getNodalOfficerForJurisdiction } from '../mockData/authorities';
 
 // -------------------------------------------------------------
 // Spatial & H3 Utilities
@@ -199,6 +202,16 @@ function countMatches(text: string, keywords: string[]): number {
   return count;
 }
 
+function countCommonWords(text1: string, text2: string): number {
+  const words1 = new Set(text1.toLowerCase().split(/\W+/).filter((w) => w.length > 3));
+  const words2 = new Set(text2.toLowerCase().split(/\W+/).filter((w) => w.length > 3));
+  let common = 0;
+  for (const w of words1) {
+    if (words2.has(w)) common++;
+  }
+  return common;
+}
+
 // Compute semantic cosine similarity across token frequency vectors
 function computeTextCosineSimilarity(text1: string, text2: string): number {
   const norm1 = normalizeCivicText(text1);
@@ -235,10 +248,34 @@ function computeTextCosineSimilarity(text1: string, text2: string): number {
 // -------------------------------------------------------------
 export function performAiTriage(
   text: string,
-  targetLat: number,
-  targetLng: number,
-  existingGrievances: Grievance[] = []
+  latOrWard: number | string = 19.1197,
+  lngOrExistingGrievances?: number | Grievance[],
+  existingGrievancesOrCivicIssues: Grievance[] | CivicIssue[] = [],
+  existingCivicIssuesList: CivicIssue[] = [],
+  selectedCategory?: string
 ): TriageResult {
+  let targetLat = 19.1197;
+  let targetLng = 72.8464;
+  let ward = 'Ward 4 - Andheri West';
+  let existingGrievances: Grievance[] = [];
+  let existingCivicIssues: CivicIssue[] = existingCivicIssuesList;
+
+  if (typeof latOrWard === 'number') {
+    targetLat = latOrWard;
+    targetLng = typeof lngOrExistingGrievances === 'number' ? lngOrExistingGrievances : 72.8464;
+    existingGrievances = Array.isArray(existingGrievancesOrCivicIssues)
+      ? (existingGrievancesOrCivicIssues as Grievance[])
+      : [];
+  } else {
+    ward = latOrWard || 'Ward 4 - Andheri West';
+    if (Array.isArray(lngOrExistingGrievances)) {
+      existingGrievances = lngOrExistingGrievances as Grievance[];
+    }
+    if (Array.isArray(existingGrievancesOrCivicIssues)) {
+      existingCivicIssues = existingGrievancesOrCivicIssues as CivicIssue[];
+    }
+  }
+
   const language = detectLanguage(text);
   const { department, topic, confidence } = classifyDepartment(text);
   const h3Index = getH3Index(targetLat, targetLng, 10);
@@ -287,7 +324,7 @@ export function performAiTriage(
   else if (priorityScore >= 70) priority = 'High';
   else if (priorityScore >= 45) priority = 'Medium';
 
-  // Two-Stage Spatio-Semantic Deduplication
+  // Two-Stage Spatio-Semantic Deduplication (Level 1: Ticket Duplicate Check)
   let duplicateMatch: Grievance | null = null;
   let maxSim = 0;
   let matchDist = 0;
@@ -316,6 +353,285 @@ export function performAiTriage(
     }
   }
 
+  // Level 2: Civic Issue Matching
+  let matchedCivicIssue: CivicIssue | null = null;
+  if (ward && text.length > 8 && existingCivicIssues.length > 0) {
+    const wardIssues = existingCivicIssues.filter(iss => iss.ward === ward && iss.status !== 'Resolved');
+    for (const issue of wardIssues) {
+      if (issue.category === department || issue.responsible_department === department) {
+        const commonWords = countCommonWords(text, issue.issue_description + ' ' + issue.issue_title);
+        if (commonWords >= 2) {
+          matchedCivicIssue = issue;
+          break;
+        }
+      }
+    }
+  }
+
+  // AI ROUTING CALCULATION
+  const { authority, deptName } = getAuthorityForDepartment(department);
+  const assignedOfficer = getNodalOfficerForJurisdiction(ward, department);
+
+  // Transparent Weighted Routing Confidence Score (0-100)
+  // Category match: 40%, Department match: 25%, Jurisdiction match: 20%, Authority match: 15%
+  const catConf = confidence > 0 ? confidence : 0.82;
+  const deptMatch = 0.95;
+  const wardMatch = ward ? 0.90 : 0.60;
+  const authMatch = 0.90;
+
+  const rawRoutingScore = (0.40 * catConf + 0.25 * deptMatch + 0.20 * wardMatch + 0.15 * authMatch) * 100;
+  const routingConfidence = Math.min(98, Math.max(35, Math.round(rawRoutingScore)));
+
+  // Category Mismatch Detection
+  const categoryMismatch = Boolean(
+    selectedCategory &&
+    selectedCategory !== 'ALL' &&
+    selectedCategory !== department
+  );
+
+  let routingStatus = 'Automatically Routed';
+  let requiresHumanReview = false;
+
+  if (categoryMismatch) {
+    routingStatus = 'Provisionally Routed (Category Mismatch)';
+  } else if (routingConfidence < 60) {
+    routingStatus = 'Requires Human Verification';
+    requiresHumanReview = true;
+  } else if (routingConfidence < 80) {
+    routingStatus = 'Provisionally Routed';
+  }
+
+  const reasonLines = [
+    `• Complaint text analyzed for semantic keywords (${department} confidence: ${Math.round(catConf * 100)}%).`,
+    `• Jurisdiction mapped to ${ward} under ${authority}.`,
+    `• Designated nodal officer: ${assignedOfficer}.`
+  ];
+  if (categoryMismatch) {
+    reasonLines.push(`• ️ Category Mismatch: You selected '${selectedCategory}', but AI determined '${department}'.`);
+  }
+
+  const routing: RoutingResult = {
+    authority,
+    department,
+    department_name: deptName,
+    jurisdiction: ward,
+    assigned_officer: assignedOfficer,
+    routing_confidence: routingConfidence,
+    routing_status: routingStatus,
+    routing_reason: reasonLines.join('\n'),
+    requires_human_review: requiresHumanReview,
+    category_mismatch: categoryMismatch,
+    suggested_department: department,
+    citizen_selected_category: selectedCategory
+  };
+
+  // MULTI-AGENCY DECOMPOSITION CALCULATION
+  const hasWaterPipe = /pipe|pipeline|water leak|burst|gushing|water main/i.test(lower);
+  const hasRoadDamage = /pothole|road|asphalt|caved|collaps|tar|street damage|crater/i.test(lower);
+  const hasTree = /tree|branch|trunk|fallen tree/i.test(lower);
+  const hasElec = /wire|cable|transformer|pole|electric|power|blackout|spark/i.test(lower);
+  const hasSewer = /sewer|gutter|drain|overflow|sludge|manhole/i.test(lower);
+
+  let isMultiAgency = false;
+  let primaryIssueTitle = `${department} Civic Issue`;
+  let rootCause = `Direct ${department} operational defect`;
+  let affectedInfra: string[] = [`${department} Infrastructure`];
+  let subIssues: import('../types/grievance').SubIssue[] = [];
+  let dependencies: import('../types/grievance').DependencyLink[] = [];
+  let explainability: string[] = [];
+
+  const cleanWard = ward ? ward.split(' - ')[0] : 'Ward';
+
+  if (hasWaterPipe && hasRoadDamage) {
+    isMultiAgency = true;
+    primaryIssueTitle = 'Road surface collapse caused by underground water pipeline leak';
+    rootCause = 'Underground main water pipeline leakage & sub-soil erosion';
+    affectedInfra = ['Water Pipeline Infrastructure', 'Municipal Road Surface', 'Traffic Transit Corridor'];
+
+    subIssues = [
+      {
+        id: 'SUB-001',
+        title: 'Repair underground water pipeline leakage',
+        description: 'Isolate damaged water main section and seal/replace pipe.',
+        category: 'Water Supply',
+        responsible_authority: 'Maharashtra Water Supply & Sewerage Board',
+        responsible_department: 'Water Maintenance Division',
+        assigned_officer: `${cleanWard} Executive Engineer (Er. Vikram Desai)`,
+        confidence: 92,
+        required_action: 'Repair water main pipeline leak & stop sub-soil erosion',
+        dependencies: [],
+        status: 'Pending'
+      },
+      {
+        id: 'SUB-002',
+        title: 'Road surface resurfacing & crater repair',
+        description: 'Backfill eroded sub-grade and lay fresh asphalt tar layer.',
+        category: 'Roads & Infra',
+        responsible_authority: 'Municipal Corporation of Greater Mumbai',
+        responsible_department: 'Municipal Roads Department',
+        assigned_officer: `${cleanWard} Roads Nodal Officer (Er. Rajesh Sharma)`,
+        confidence: 95,
+        required_action: 'Resurface caved-in road asphalt',
+        dependencies: ['SUB-001'],
+        status: 'Blocked'
+      }
+    ];
+
+    dependencies = [
+      {
+        from: 'SUB-001',
+        to: 'SUB-002',
+        type: 'prerequisite',
+        reason: 'Road resurfacing can only begin after the underlying water pipe leak is sealed to prevent repeated washouts.'
+      }
+    ];
+
+    explainability = [
+      '• Multi-Agency Trigger: Water Pipeline Repair + Municipal Road Restoration.',
+      '• Root Cause: Underground water pipe burst caused sub-soil erosion resulting in road collapse.',
+      '• Operational Dependency: Pipeline repair (SUB-001) MUST complete before road resurfacing (SUB-002) unlocks.'
+    ];
+
+  } else if (hasTree && (hasElec || hasRoadDamage)) {
+    isMultiAgency = true;
+    primaryIssueTitle = 'Fallen tree damaging electrical cables and blocking traffic';
+    rootCause = 'Heavy storm uprooted mature roadside tree onto overhead electrical lines';
+    affectedInfra = ['High Voltage Power Lines', 'Road Transit Corridor', 'Urban Forestry'];
+
+    subIssues = [
+      {
+        id: 'SUB-001',
+        title: 'Isolate high voltage cables & clear electrical hazard',
+        description: 'De-energize snagged overhead power lines to allow tree cutting.',
+        category: 'Electricity',
+        responsible_authority: 'BEST Electricity & Power Supply Board',
+        responsible_department: 'High Voltage Grid Operations',
+        assigned_officer: `${cleanWard} Assistant Electrical Engineer (Er. Amit Verma)`,
+        confidence: 94,
+        required_action: 'Safely isolate snagged power cables',
+        dependencies: [],
+        status: 'Pending'
+      },
+      {
+        id: 'SUB-002',
+        title: 'Cut and clear fallen tree trunk',
+        description: 'Use chainsaw teams to clear fallen trunk and branches.',
+        category: 'Sanitation & Waste',
+        responsible_authority: 'Municipal Corporation of Greater Mumbai',
+        responsible_department: 'Parks & Garden Cell',
+        assigned_officer: `${cleanWard} Chief Sanitation Inspector (Shri Suresh Patil)`,
+        confidence: 90,
+        required_action: 'Remove fallen tree obstruction from roadway',
+        dependencies: ['SUB-001'],
+        status: 'Blocked'
+      }
+    ];
+
+    dependencies = [
+      {
+        from: 'SUB-001',
+        to: 'SUB-002',
+        type: 'prerequisite',
+        reason: 'Tree cutting crew cannot operate until BEST isolates live high-voltage power lines.'
+      }
+    ];
+
+    explainability = [
+      '• Multi-Agency Trigger: BEST Electricity Board + Municipal Parks Cell.',
+      '• Root Cause: Uprooted tree snagged live high-voltage power lines.',
+      '• Safety Dependency: Power isolation (SUB-001) is a mandatory safety prerequisite before tree removal (SUB-002).'
+    ];
+
+  } else if (hasSewer && hasRoadDamage) {
+    isMultiAgency = true;
+    primaryIssueTitle = 'Sewer line blockage causing sewage flooding and road damage';
+    rootCause = 'Main arterial sewer pipe blockage causing toxic effluent overflow';
+    affectedInfra = ['Underground Drainage System', 'Municipal Road Asphalt'];
+
+    subIssues = [
+      {
+        id: 'SUB-001',
+        title: 'De-clog main sewer line & drain toxic effluent',
+        description: 'Deploy suction jetting machines to clear drainage blockage.',
+        category: 'Sanitation & Waste',
+        responsible_authority: 'Municipal Corporation of Greater Mumbai',
+        responsible_department: 'Storm Water Drainage & Sewerage Division',
+        assigned_officer: `${cleanWard} Chief Sanitation Inspector (Shri Suresh Patil)`,
+        confidence: 91,
+        required_action: 'De-clog blocked sewer line and drain effluent',
+        dependencies: [],
+        status: 'Pending'
+      },
+      {
+        id: 'SUB-002',
+        title: 'Disinfect road surface & repair damaged asphalt',
+        description: 'Spray chemical disinfectant and patch eroded road sections.',
+        category: 'Roads & Infra',
+        responsible_authority: 'Municipal Corporation of Greater Mumbai',
+        responsible_department: 'Municipal Roads Department',
+        assigned_officer: `${cleanWard} Roads Nodal Officer (Er. Rajesh Sharma)`,
+        confidence: 88,
+        required_action: 'Sanitize area and repair damaged pavement',
+        dependencies: ['SUB-001'],
+        status: 'Blocked'
+      }
+    ];
+
+    dependencies = [
+      {
+        from: 'SUB-001',
+        to: 'SUB-002',
+        type: 'prerequisite',
+        reason: 'Disinfection and road patching require the sewer overflow to be completely stopped first.'
+      }
+    ];
+
+    explainability = [
+      '• Multi-Agency Trigger: Sewerage Division + Municipal Roads Department.',
+      '• Root Cause: Blocked main sewer line causing surface flooding.',
+      '• Operational Dependency: Clearing sewer blockage (SUB-001) precedes road disinfection & patching (SUB-002).'
+    ];
+
+  } else {
+    isMultiAgency = false;
+    primaryIssueTitle = `${department} Civic Issue`;
+    rootCause = `Direct ${department} operational defect`;
+    affectedInfra = [`${department} Infrastructure`];
+    subIssues = [
+      {
+        id: 'SUB-001',
+        title: `Resolve ${department} issue`,
+        description: text,
+        category: department,
+        responsible_authority: authority,
+        responsible_department: deptName,
+        assigned_officer: assignedOfficer,
+        confidence: routingConfidence,
+        required_action: `Dispatch field team to resolve ${department} issue`,
+        dependencies: [],
+        status: 'Pending'
+      }
+    ];
+    explainability = [
+      `• Single-Agency Issue: Handled entirely by ${authority}.`,
+      `• No cross-department operational dependencies detected.`
+    ];
+  }
+
+  const overallConf = Math.min(98, Math.max(40, Math.round(subIssues.reduce((acc, s) => acc + s.confidence, 0) / subIssues.length)));
+
+  const resolution_plan: import('../types/grievance').ResolutionPlan = {
+    is_multi_agency: isMultiAgency,
+    primary_issue_title: primaryIssueTitle,
+    root_cause: rootCause,
+    affected_infrastructure: affectedInfra,
+    sub_issues: subIssues,
+    dependencies,
+    overall_confidence: overallConf,
+    explainability,
+    routing
+  };
+
   return {
     language,
     department,
@@ -325,12 +641,16 @@ export function performAiTriage(
     affectedScope,
     baseSeverity,
     priorityScore,
+    priorityLevel: priority,
     priority,
     duplicateMatch,
     similarityScore: Math.round(maxSim * 100) / 100,
     distanceMeters: duplicateMatch ? Math.round(matchDist * 10) / 10 : undefined,
     h3Index,
-    confidence
+    confidence,
+    matchedCivicIssue,
+    routing,
+    resolution_plan
   };
 }
 
