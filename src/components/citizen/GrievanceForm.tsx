@@ -31,6 +31,9 @@ interface GrievanceFormProps {
   isDarkMode: boolean;
   onTrackTicket: (ticketId: string) => void;
   currentLanguage: Language;
+  currentUser?: { id?: string; name: string; role: string; email: string } | null;
+  onOpenLogin?: () => void;
+  onOpenRegister?: () => void;
 }
 
 export const GrievanceForm: React.FC<GrievanceFormProps> = ({
@@ -40,7 +43,10 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
   onUpvoteGrievance,
   isDarkMode,
   onTrackTicket,
-  currentLanguage
+  currentLanguage,
+  currentUser,
+  onOpenLogin,
+  onOpenRegister
 }) => {
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
@@ -191,6 +197,10 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      if (onOpenLogin) onOpenLogin();
+      return;
+    }
     if (!complaintText.trim() || !triage) return;
 
     setIsSubmitting(true);
@@ -393,6 +403,40 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
         
         {/* Main Input Form Column (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
+
+          {/* CPGRAMS REGISTERED USER NOTICE BANNER */}
+          {!currentUser && (
+            <div className={`p-8 rounded-2xl border text-center space-y-4 shadow-xl ${
+              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-900'
+            }`}>
+              <div className="w-14 h-14 mx-auto rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-2xl">
+                🔒
+              </div>
+              <h2 className="text-lg sm:text-xl font-extrabold text-rose-500 dark:text-rose-400 font-heading">
+                Grievance can now be lodged only by registered users..
+              </h2>
+              <div className="flex flex-col items-center space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => onOpenLogin?.()}
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs uppercase tracking-wider transition shadow-lg flex items-center space-x-2 cursor-pointer"
+                >
+                  <span>User Login</span>
+                </button>
+                <p className="text-xs text-slate-400 pt-1">
+                  Not yet registered!{' '}
+                  <button
+                    type="button"
+                    onClick={() => onOpenRegister?.()}
+                    className="font-bold text-blue-400 hover:underline cursor-pointer"
+                  >
+                    Click here to register.
+                  </button>
+                </p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className={`p-6 rounded-2xl border ${
             isDarkMode 
               ? 'bg-slate-900 border-slate-800' 

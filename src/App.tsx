@@ -401,6 +401,9 @@ export function App() {
                 isDarkMode={isDarkMode}
                 onTrackTicket={handleNavigateToTracker}
                 currentLanguage={currentLanguage}
+                currentUser={currentUser}
+                onOpenLogin={() => setIsRegisterOpen(true)}
+                onOpenRegister={() => setIsSignInOpen(true)}
               />
             ) : (
               <CitizenTracker
