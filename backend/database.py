@@ -5,7 +5,8 @@ from sqlalchemy.orm import sessionmaker
 
 # 1. Read the Supabase/Neon/Render PostgreSQL URL from the environment variable;
 #    fall back to local SQLite if running on your machine without cloud variables.
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./jansetu.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./jansetu_v3.db")
+
 
 # 2. Fix compatibility: Render/Postgres URLs starting with 'postgres://' 
 #    need to be converted to 'postgresql://' for modern SQLAlchemy versions.

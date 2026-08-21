@@ -35,6 +35,7 @@ export const TRANSLATIONS = {
     aiChatbotSubtitle: 'Real-time Public Grievance Assistant',
 
     // Grievance Form
+    formTitle: 'Lodge Public Grievance (NIVARAN AI Triage)',
     selectWard: 'Select Municipal Ward Zone',
     describeIssue: 'Describe your civic issue (English / Hindi / Marathi)',
     placeholderText: 'Type or speak your complaint (e.g. Ward 4 me 3 din se garbage clean nahi hua hai...)',
@@ -187,6 +188,7 @@ export const TRANSLATIONS = {
     aiChatbotSubtitle: 'वास्तविक समय लोक शिकायत सहायक',
 
     // Grievance Form
+    formTitle: 'लोक शिकायत दर्ज करें (निवारण AI विश्लेषण)',
     selectWard: 'नगर निगम वार्ड क्षेत्र चुनें',
     describeIssue: 'अपनी समस्या का विवरण दें (हिंदी / मराठी / अंग्रेजी)',
     placeholderText: 'अपनी शिकायत यहाँ लिखें या बोलें (उदा. वार्ड 4 में 3 दिन से पानी की पाइप लाइन फटी है...)',
@@ -339,6 +341,7 @@ export const TRANSLATIONS = {
     aiChatbotSubtitle: 'रिअल-टाइम लोक तक्रार सहाय्यक',
 
     // Grievance Form
+    formTitle: 'लोक तक्रार नोंदवा (निवारण AI विश्लेषण)',
     selectWard: 'महानगरपालिका वॉर्ड क्षेत्र निवडा',
     describeIssue: 'आपल्या समस्येचे वर्णन करा (मराठी / हिंदी / इंग्रजी)',
     placeholderText: 'आपली तक्रार येथे लिहा किंवा बोला (उदा. वॉर्ड ४ मध्ये ३ दिवसांपासून पाण्याची पाइपलाइन फुटली आहे...)',

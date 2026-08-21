@@ -1,4 +1,4 @@
-import type { Grievance } from '../types/grievance';
+import type { Grievance, GovernanceScorecardData, SubTask } from '../types/grievance';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -8,14 +8,36 @@ export interface BackendTicket {
   location: string;
   category: string;
   priority_score: number;
+  base_severity?: number;
   status: string;
   created_at: string;
+  latitude?: number;
+  longitude?: number;
+  h3_index?: string;
+  upvotes?: number;
+  duplicate_group?: string | null;
+  verification_status?: 'unverified' | 'pending_verification' | 'verified_closed' | 'rejected_escalated';
+  citizen_otp?: string;
+  falsified_attempts?: number;
+  assigned_officer?: string;
+  resolution_proof_lat?: number;
+  resolution_proof_lng?: number;
+  resolution_image_url?: string;
+  resolution_cv_score?: number;
+  closure_rejected_reason?: string;
+  resolved_at?: string;
+  parent_ticket_id?: string | null;
+  sub_tasks?: string;
+  transfers_count?: number;
+  audit_trail?: string;
 }
 
 export interface AnalyzeResponse {
   category: string;
   priority_score: number;
-  confidence: number;
+  base_severity: number;
+  topic?: string;
+  confidence?: number;
 }
 
 const DEPT_CENTROIDS: Record<string, { cx: number; cy: number }> = {
@@ -25,14 +47,6 @@ const DEPT_CENTROIDS: Record<string, { cx: number; cy: number }> = {
   'Electricity': { cx: 85.0, cy: -50.0 },
   'Public Distribution': { cx: -75.0, cy: -45.0 },
   'Public Health & Healthcare': { cx: -20.0, cy: -60.0 }
-};
-
-const WARD_BASE_COORDS: Record<string, { lat: number; lng: number }> = {
-  'Ward 4 - Andheri West': { lat: 19.1197, lng: 72.8464 },
-  'Ward 7 - Bandra East': { lat: 19.0620, lng: 72.8480 },
-  'Ward 2 - Malad West': { lat: 19.1860, lng: 72.8485 },
-  'Ward 9 - Dadar West': { lat: 19.0178, lng: 72.8478 },
-  'Ward 12 - Kurla East': { lat: 19.0650, lng: 72.8790 }
 };
 
 function getStableHashOffset(id: string, salt: number, spread: number): number {
@@ -51,7 +65,6 @@ export function mapBackendTicketToGrievance(bt: BackendTicket): Grievance {
   else if (bt.priority_score >= 70) priority = 'High';
   else if (bt.priority_score >= 45) priority = 'Medium';
 
-  // Map category to department
   let dept: Grievance['Department'] = 'Sanitation & Waste';
   const cat = (bt.category || '').toLowerCase();
   if (cat.includes('water')) dept = 'Water Supply';
@@ -61,14 +74,27 @@ export function mapBackendTicketToGrievance(bt: BackendTicket): Grievance {
   else if (cat.includes('health') || cat.includes('hospital')) dept = 'Public Health & Healthcare';
   else if (cat.includes('pension') || cat.includes('ration') || cat.includes('distribution')) dept = 'Public Distribution';
 
-  const ward = bt.location || 'Ward 4 - Andheri West';
-  const baseWard = WARD_BASE_COORDS[ward] || { lat: 19.1197, lng: 72.8464 };
   const baseCluster = DEPT_CENTROIDS[dept] || { cx: 0, cy: 0 };
-
   const clusterX = Number((baseCluster.cx + getStableHashOffset(bt.id, 17, 18)).toFixed(2));
   const clusterY = Number((baseCluster.cy + getStableHashOffset(bt.id, 31, 18)).toFixed(2));
-  const lat = Number((baseWard.lat + getStableHashOffset(bt.id, 47, 0.015)).toFixed(6));
-  const lng = Number((baseWard.lng + getStableHashOffset(bt.id, 53, 0.015)).toFixed(6));
+
+  let parsedSubtasks: SubTask[] = [];
+  try {
+    if (bt.sub_tasks) {
+      parsedSubtasks = typeof bt.sub_tasks === 'string' ? JSON.parse(bt.sub_tasks) : bt.sub_tasks;
+    }
+  } catch {
+    parsedSubtasks = [];
+  }
+
+  let parsedAudit = [];
+  try {
+    if (bt.audit_trail) {
+      parsedAudit = typeof bt.audit_trail === 'string' ? JSON.parse(bt.audit_trail) : bt.audit_trail;
+    }
+  } catch {
+    parsedAudit = [];
+  }
 
   return {
     Complaint_ID: bt.id,
@@ -80,15 +106,38 @@ export function mapBackendTicketToGrievance(bt: BackendTicket): Grievance {
     Urgency: bt.priority_score >= 85 ? 5 : bt.priority_score >= 70 ? 4 : 3,
     Affected_Scope: bt.priority_score >= 85 ? 5 : 3,
     Priority_Score: bt.priority_score,
+    Base_Severity: bt.base_severity ?? 50,
     Priority: priority,
-    Duplicate_Group: null,
-    Ward: ward,
+    Duplicate_Group: bt.duplicate_group || null,
+    Ward: bt.location || 'Ward 4 - Andheri West',
     Status: (bt.status as Grievance['Status']) || 'Pending',
     Date_Submitted: bt.created_at || new Date().toISOString(),
-    Latitude: lat,
-    Longitude: lng,
-    Upvotes: 1,
-    Assigned_Officer: `Er. ${dept.split(' ')[0]} Officer`,
+    Latitude: bt.latitude ?? 19.1197,
+    Longitude: bt.longitude ?? 72.8464,
+    H3_Index: bt.h3_index,
+    Upvotes: bt.upvotes ?? 1,
+    Assigned_Officer: bt.assigned_officer || `Er. ${dept.split(' ')[0]} Officer`,
+    Verification_Status: bt.verification_status || 'unverified',
+    Citizen_OTP: bt.citizen_otp,
+    Falsified_Attempts: bt.falsified_attempts ?? 0,
+    Transfers_Count: bt.transfers_count ?? 0,
+    Resolution_Proof: bt.resolution_image_url
+      ? {
+          officer_name: bt.assigned_officer || 'Ground Officer',
+          officer_lat: bt.resolution_proof_lat ?? bt.latitude ?? 19.1197,
+          officer_lng: bt.resolution_proof_lng ?? bt.longitude ?? 72.8464,
+          distance_m: 12.4,
+          image_url: bt.resolution_image_url,
+          cv_delta_score: bt.resolution_cv_score ?? 0.88,
+          notes: 'Field resolution proof submitted on site.',
+          submitted_at: bt.resolved_at || new Date().toISOString()
+        }
+      : undefined,
+    Closure_Rejected_Reason: bt.closure_rejected_reason,
+    Resolved_At: bt.resolved_at,
+    Parent_Ticket_ID: bt.parent_ticket_id,
+    Sub_Tasks: parsedSubtasks,
+    Audit_Trail: parsedAudit,
     Cluster_X: clusterX,
     Cluster_Y: clusterY
   };
@@ -115,30 +164,146 @@ export async function createTicketApi(
   text: string,
   location: string,
   category?: string,
-  priorityScore?: number
+  priorityScore?: number,
+  latitude: number = 19.1197,
+  longitude: number = 72.8464,
+  assignedOfficer?: string
 ): Promise<Grievance> {
   const res = await fetch(`${API_BASE_URL}/api/tickets`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, text, location, category, priority_score: priorityScore })
+    body: JSON.stringify({
+      id,
+      text,
+      location,
+      category,
+      priority_score: priorityScore,
+      latitude,
+      longitude,
+      assigned_officer: assignedOfficer
+    })
   });
   if (!res.ok) throw new Error('Failed to create ticket in FastAPI backend');
   const data: BackendTicket = await res.json();
   return mapBackendTicketToGrievance(data);
 }
 
+export async function upvoteTicketApi(
+  ticketId: string,
+  citizenNote?: string
+): Promise<Grievance> {
+  const res = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}/upvote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ citizen_note: citizenNote })
+  });
+  if (!res.ok) throw new Error('Failed to upvote ticket');
+  const data: BackendTicket = await res.json();
+  return mapBackendTicketToGrievance(data);
+}
+
+export async function submitResolutionProofApi(
+  ticketId: string,
+  officerName: string,
+  officerLatitude: number,
+  officerLongitude: number,
+  resolutionImageUrl?: string,
+  resolutionNotes?: string
+): Promise<Grievance> {
+  const res = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}/resolve-proof`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      officer_name: officerName,
+      officer_latitude: officerLatitude,
+      officer_longitude: officerLongitude,
+      resolution_image_url: resolutionImageUrl,
+      resolution_notes: resolutionNotes
+    })
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.detail || 'Failed to submit resolution proof');
+  }
+  const data: BackendTicket = await res.json();
+  return mapBackendTicketToGrievance(data);
+}
+
+export async function verifyResolutionApi(
+  ticketId: string,
+  action: 'approve' | 'reject',
+  otp?: string,
+  rejectionReason?: string
+): Promise<Grievance> {
+  const res = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}/verify-resolution`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action,
+      otp,
+      rejection_reason: rejectionReason
+    })
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.detail || 'Failed to verify resolution');
+  }
+  const data: BackendTicket = await res.json();
+  return mapBackendTicketToGrievance(data);
+}
+
+export async function createSplitTasksApi(
+  ticketId: string,
+  subTasks: SubTask[]
+): Promise<Grievance> {
+  const res = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}/split-task`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sub_tasks: subTasks })
+  });
+  if (!res.ok) throw new Error('Failed to create split tasks');
+  const data: BackendTicket = await res.json();
+  return mapBackendTicketToGrievance(data);
+}
+
+export async function resolveSubTaskApi(
+  ticketId: string,
+  subTaskId: string,
+  officerNotes?: string
+): Promise<Grievance> {
+  const res = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}/subtasks/${subTaskId}/resolve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ officer_notes: officerNotes })
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.detail || 'Failed to resolve sub-task');
+  }
+  const data: BackendTicket = await res.json();
+  return mapBackendTicketToGrievance(data);
+}
+
 export async function updateTicketStatusApi(
   ticketId: string,
-  status: string
+  status?: string,
+  department?: string,
+  assignedOfficer?: string
 ): Promise<Grievance> {
   const res = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status, department, assigned_officer: assignedOfficer })
   });
   if (!res.ok) throw new Error('Failed to update status in FastAPI backend');
   const data: BackendTicket = await res.json();
   return mapBackendTicketToGrievance(data);
+}
+
+export async function fetchGovernanceScorecardApi(): Promise<GovernanceScorecardData> {
+  const res = await fetch(`${API_BASE_URL}/api/analytics/governance-scorecard`);
+  if (!res.ok) throw new Error('Failed to fetch governance scorecard');
+  return res.json();
 }
 
 export async function analyzeTextApi(text: string): Promise<AnalyzeResponse> {
@@ -162,3 +327,4 @@ export async function uploadFileApi(file: File): Promise<{ message: string; reco
   if (!res.ok) throw new Error('Failed to upload file to FastAPI backend');
   return res.json();
 }
+

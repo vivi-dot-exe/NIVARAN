@@ -5,17 +5,99 @@ import type {
   PriorityLevel,
   TriageResult
 } from '../types/grievance';
+import { latLngToCell } from 'h3-js';
+
+// -------------------------------------------------------------
+// Spatial & H3 Utilities
+// -------------------------------------------------------------
+export function calculateHaversineDistance(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+export function getH3Index(lat: number, lng: number, resolution: number = 10): string {
+  try {
+    return latLngToCell(lat, lng, resolution);
+  } catch {
+    return `h3_res${resolution}_${Math.round(lat * 1000)}_${Math.round(lng * 1000)}`;
+  }
+}
+
+// -------------------------------------------------------------
+// Dynamic Priority Score Formula
+// Priority Score = min(100, BaseSeverity + 10 * log2(Upvotes + 1) + ElapsedHours * 0.75)
+// -------------------------------------------------------------
+export function calculateDynamicPriorityScore(
+  baseSeverity: number,
+  upvotes: number = 1,
+  dateSubmitted?: string
+): number {
+  let elapsedHours = 0;
+  if (dateSubmitted) {
+    const submittedTime = new Date(dateSubmitted).getTime();
+    const now = Date.now();
+    elapsedHours = Math.max(0, (now - submittedTime) / (1000 * 60 * 60));
+  }
+
+  const upvoteBoost = 10 * Math.log2(Math.max(1, upvotes) + 1);
+  const timeBoost = elapsedHours * 0.75;
+  const total = baseSeverity + upvoteBoost + timeBoost;
+  return Math.min(100, Math.max(15, Math.round(total)));
+}
+
+// -------------------------------------------------------------
+// Multilingual Civic Normalizer
+// -------------------------------------------------------------
+export function normalizeCivicText(text: string): string {
+  if (!text) return '';
+  const t = text.toLowerCase();
+  const map: Record<string, string> = {
+    paani: 'water',
+    pani: 'water',
+    phat: 'burst leak',
+    phata: 'burst',
+    toot: 'broken',
+    gadda: 'pothole',
+    gaddhe: 'potholes',
+    sadak: 'road',
+    rasta: 'road',
+    kachra: 'garbage waste',
+    safai: 'cleaning waste',
+    bijli: 'electricity power',
+    batti: 'light electricity',
+    aspatal: 'hospital clinic',
+    aspataal: 'hospital',
+    dawa: 'medicine'
+  };
+
+  return t
+    .split(/\s+/)
+    .map((w) => map[w.replace(/[^a-z]/g, '')] || w)
+    .join(' ');
+}
 
 export function detectLanguage(text: string): LanguageType {
   if (!text || text.trim().length === 0) return 'English';
 
-  // Check for Devanagari script (Hindi)
   const devanagariRegex = /[\u0900-\u097F]/;
   if (devanagariRegex.test(text)) {
     return 'Hindi';
   }
 
-  // Common Hinglish code-mixed tokens
   const hinglishTokens = [
     'paani', 'pani', 'kachra', 'gadda', 'sadak', 'bijli', 'batti', 'naala',
     'phat', 'phata', 'hai', 'hain', 'ho', 'me', 'mein', 'par', 'pe', 'nahi',
@@ -48,37 +130,31 @@ export function classifyDepartment(text: string): {
 } {
   const lower = text.toLowerCase();
 
-  // Water keywords
   const waterScore = countMatches(lower, [
     'water', 'pipeline', 'leak', 'pipe', 'tap', 'pressure', 'supply', 'paani',
     'pani', 'nall', 'peene', 'contamination', 'dirty water', 'yellowish', 'phat'
   ]);
 
-  // Infra keywords
   const infraScore = countMatches(lower, [
     'pothole', 'road', 'gadda', 'gaddhe', 'subway', 'footpath', 'cave-in',
     'sadak', 'bridge', 'tar', 'asphalt', 'traffic', 'accident', 'slipping'
   ]);
 
-  // Sanitation keywords
   const sanitationScore = countMatches(lower, [
     'garbage', 'kachra', 'waste', 'drain', 'sewage', 'naala', 'nala', 'dump',
     'smell', 'foul', 'uncollected', 'vector', 'makkhi', 'safai'
   ]);
 
-  // Electricity keywords
   const elecScore = countMatches(lower, [
     'transformer', 'power', 'light', 'bijli', 'blackout', 'meter', 'batti',
     'voltage', 'blast', 'spark', 'sparks', 'outage', 'dark spot', 'gokhale'
   ]);
 
-  // Public Distribution keywords
   const pdsScore = countMatches(lower, [
     'ration', 'pension', 'dbt', 'card', 'benefit', 'dukan', 'biometric',
     'widow', 'senior citizen', 'grain', 'shop'
   ]);
 
-  // Public Health & Healthcare keywords
   const healthScore = countMatches(lower, [
     'hospital', 'hospitals', 'doctor', 'doctors', 'clinic', 'medical', 'medicine',
     'bed', 'beds', 'ambulance', 'dengue', 'malaria', 'icu', 'oxygen', 'patient',
@@ -106,9 +182,8 @@ export function classifyDepartment(text: string): {
     };
   }
 
-  // General Fallback
   return {
-    department: 'Public Health & Healthcare',
+    department: 'Sanitation & Waste',
     topic: 'General Civic Administration',
     confidence: 0.65
   };
@@ -124,17 +199,53 @@ function countMatches(text: string, keywords: string[]): number {
   return count;
 }
 
+// Compute semantic cosine similarity across token frequency vectors
+function computeTextCosineSimilarity(text1: string, text2: string): number {
+  const norm1 = normalizeCivicText(text1);
+  const norm2 = normalizeCivicText(text2);
+
+  const getTokens = (t: string) => t.toLowerCase().split(/\W+/).filter((w) => w.length > 2);
+  const tokens1 = getTokens(norm1);
+  const tokens2 = getTokens(norm2);
+
+  if (tokens1.length === 0 || tokens2.length === 0) return 0;
+
+  const vocab = Array.from(new Set([...tokens1, ...tokens2]));
+  const vec1 = vocab.map((w) => tokens1.filter((t) => t === w).length);
+  const vec2 = vocab.map((w) => tokens2.filter((t) => t === w).length);
+
+  let dotProduct = 0;
+  let mag1 = 0;
+  let mag2 = 0;
+
+  for (let i = 0; i < vocab.length; i++) {
+    dotProduct += vec1[i] * vec2[i];
+    mag1 += vec1[i] * vec1[i];
+    mag2 += vec2[i] * vec2[i];
+  }
+
+  if (mag1 === 0 || mag2 === 0) return 0;
+  return dotProduct / (Math.sqrt(mag1) * Math.sqrt(mag2));
+}
+
+// -------------------------------------------------------------
+// Pillar 1: Two-Stage Spatio-Semantic Triage Pipeline
+// Stage 1: Spatial Gating (candidates within <= 35 meters)
+// Stage 2: Semantic Verification (Cosine similarity > 0.78)
+// -------------------------------------------------------------
 export function performAiTriage(
   text: string,
-  ward: string,
+  targetLat: number,
+  targetLng: number,
   existingGrievances: Grievance[] = []
 ): TriageResult {
   const language = detectLanguage(text);
   const { department, topic, confidence } = classifyDepartment(text);
+  const h3Index = getH3Index(targetLat, targetLng, 10);
 
   const lower = text.toLowerCase();
 
-  // Calculate Severity (1-5)
+  // Severity (1-5)
   let severity = 2;
   if (countMatches(lower, ['hospital', 'hospitals', 'blast', 'explosion', 'gushing', 'phat', 'flooding', 'blackout', 'aag', 'sparks', 'cave-in', 'emergency', 'no working', 'icu', 'oxygen', 'ambulance', 'life']) > 0) {
     severity = 5;
@@ -144,7 +255,7 @@ export function performAiTriage(
     severity = 3;
   }
 
-  // Calculate Urgency (1-5)
+  // Urgency (1-5)
   let urgency = 2;
   if (countMatches(lower, ['hospital', 'hospitals', 'no working', 'emergency', 'urgent', 'immediately', 'now', 'today', 'hours', 'risk', 'danger', 'icu', 'ambulance']) > 0) {
     urgency = 5;
@@ -154,7 +265,7 @@ export function performAiTriage(
     urgency = 3;
   }
 
-  // Calculate Affected Scope (1-5)
+  // Affected Scope (1-5)
   let affectedScope = 2;
   if (countMatches(lower, ['kandivali', 'entire', 'whole', 'block', 'ward', 'colony', 'area', 'society', '1 km', 'all', 'station', 'subway', 'city']) > 0) {
     affectedScope = 5;
@@ -164,26 +275,43 @@ export function performAiTriage(
     affectedScope = 3;
   }
 
-  // Composite Priority Score (0-100)
-  const rawScore = (severity * 0.35 + urgency * 0.35 + affectedScope * 0.30) * 20;
-  const priorityScore = Math.min(100, Math.max(15, Math.round(rawScore)));
+  // Base Severity (0-100)
+  const rawBase = (severity * 0.35 + urgency * 0.35 + affectedScope * 0.30) * 20;
+  const baseSeverity = Math.min(95, Math.max(20, Math.round(rawBase)));
+
+  // Dynamic Priority for newly lodged ticket
+  const priorityScore = calculateDynamicPriorityScore(baseSeverity, 1);
 
   let priority: PriorityLevel = 'Low';
   if (priorityScore >= 85) priority = 'Critical';
   else if (priorityScore >= 70) priority = 'High';
   else if (priorityScore >= 45) priority = 'Medium';
 
-  // Duplicate Check
+  // Two-Stage Spatio-Semantic Deduplication
   let duplicateMatch: Grievance | null = null;
-  if (ward && text.length > 10) {
-    const wardGrievances = existingGrievances.filter((g) => g.Ward === ward);
-    for (const g of wardGrievances) {
-      if (g.Department === department) {
-        const wordMatch = countCommonWords(text, g.Complaint);
-        if (wordMatch >= 3 || (g.Duplicate_Group && g.Department === department)) {
-          duplicateMatch = g;
-          break;
-        }
+  let maxSim = 0;
+  let matchDist = 0;
+
+  if (text.trim().length > 6) {
+    // Stage 1: Spatial Gating (<= 35 meters)
+    // Exclude Resolved and Closed tickets — they are already handled and should not
+    // be shown as duplicates to new submitters.
+    const nearbyTickets = existingGrievances.filter((g) => {
+      if (g.Status === 'Closed' || g.Status === 'Resolved') return false;
+      const d = calculateHaversineDistance(targetLat, targetLng, g.Latitude, g.Longitude);
+      return d <= 35.0;
+    });
+
+    // Stage 2: Semantic Cosine Verification (> 0.78)
+    for (const cand of nearbyTickets) {
+      const sim = computeTextCosineSimilarity(text, cand.Complaint);
+      const dist = calculateHaversineDistance(targetLat, targetLng, cand.Latitude, cand.Longitude);
+
+      // Spec threshold: > 0.78 cosine similarity (Blueprint Section 1, Stage 2)
+      if (sim >= 0.78 && sim > maxSim) {
+        maxSim = sim;
+        duplicateMatch = cand;
+        matchDist = dist;
       }
     }
   }
@@ -195,20 +323,14 @@ export function performAiTriage(
     severity,
     urgency,
     affectedScope,
+    baseSeverity,
     priorityScore,
     priority,
     duplicateMatch,
+    similarityScore: Math.round(maxSim * 100) / 100,
+    distanceMeters: duplicateMatch ? Math.round(matchDist * 10) / 10 : undefined,
+    h3Index,
     confidence
   };
 }
 
-function countCommonWords(text1: string, text2: string): number {
-  const words1 = new Set(text1.toLowerCase().split(/\W+/).filter(w => w.length > 3));
-  const words2 = new Set(text2.toLowerCase().split(/\W+/).filter(w => w.length > 3));
-
-  let common = 0;
-  for (const w of words1) {
-    if (words2.has(w)) common++;
-  }
-  return common;
-}

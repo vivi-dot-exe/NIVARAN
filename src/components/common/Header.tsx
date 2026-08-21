@@ -22,8 +22,8 @@ import {
 } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'citizen' | 'admin' | 'demo';
-  setActiveTab: (tab: 'citizen' | 'admin' | 'demo') => void;
+  activeTab: 'citizen' | 'admin' | 'scorecard' | 'demo';
+  setActiveTab: (tab: 'citizen' | 'admin' | 'scorecard' | 'demo') => void;
   isDarkMode: boolean;
   setIsDarkMode: (val: boolean) => void;
   breachedCount: number;
@@ -138,56 +138,64 @@ export const Header: React.FC<HeaderProps> = ({
                 className="w-10 h-12 text-amber-800 fill-current" 
                 style={{ width: '40px', height: '48px', minWidth: '40px', minHeight: '48px', maxWidth: '40px', maxHeight: '48px' }}
               >
-                <path d="M50 5 C55 15, 65 15, 70 5 C75 25, 80 40, 75 60 C70 80, 60 90, 50 115 C40 90, 30 80, 25 60 C20 40, 25 25, 30 5 C35 15, 45 15, 50 5 Z" stroke="currentColor" strokeWidth="2.5" fill="none" />
-                <circle cx="50" cy="45" r="16" stroke="currentColor" strokeWidth="3" fill="none" />
-                <circle cx="50" cy="45" r="4" fill="currentColor" />
-                <path d="M 50 29 L 50 61 M 34 45 L 66 45 M 39 34 L 61 56 M 39 56 L 61 34" stroke="currentColor" strokeWidth="1.5" />
-                <text x="50" y="108" textAnchor="middle" fontSize="10" fontWeight="extrabold" fill="#7A0C38">सत्यमेव जयते</text>
+                <circle cx="50" cy="30" r="18" fill="#8B1E3F" opacity="0.9" />
+                <path d="M30 50 Q50 40 70 50 L65 80 Q50 75 35 80 Z" fill="#D97706" />
+                <rect x="25" y="85" width="50" height="12" rx="3" fill="#1E3A8A" />
+                <circle cx="50" cy="91" r="5" fill="#F59E0B" />
+                <rect x="20" y="100" width="60" height="8" rx="2" fill="#8B1E3F" />
               </svg>
+              <span className="text-[9px] font-black tracking-widest text-[#7A0C38] uppercase mt-0.5">सत्यमेव जयते</span>
             </div>
 
             <div>
-              <span className="text-xs font-bold block text-[#7A0C38]">
-                प्रशासनिक सुधार और लोक शिकायत विभाग
-              </span>
-              <h1 className={`text-base sm:text-lg font-extrabold uppercase tracking-tight font-heading ${
+              <div className="flex items-center space-x-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#7A0C38] text-white">
+                  CPGRAMS 7.0 COMPLIANT
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold hidden sm:inline">
+                  CIVIC AI CORE v2.4
+                </span>
+              </div>
+              <h1 className={`text-xl sm:text-2xl font-black tracking-tight font-heading ${
                 isDarkMode ? 'text-white' : 'text-slate-900'
               }`}>
-                {t.govTitle}
+                NIVARAN • निवारण
               </h1>
-              <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              <p className={`text-xs font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                 {t.govSub}
               </p>
             </div>
           </div>
 
-          {/* OFFICIAL NIVARAN BRAND BADGE */}
-          <div className="flex items-center space-x-3">
-            <div className="bg-[#1E3A8A] text-white p-3.5 rounded-xl border-2 border-blue-400/40 shadow-md text-center min-w-[240px]">
-              <div className="flex items-center justify-center space-x-2">
-                <ShieldCheck className="w-6 h-6 text-amber-400" style={{ width: '24px', height: '24px' }} />
-                <span className="text-2xl font-black tracking-widest text-white font-mono">
-                  NIVARAN
-                </span>
-              </div>
-              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wider mt-0.5">
-                {t.centralizedSystem}
-              </p>
+          {/* Right Brand Badges */}
+          <div className="hidden lg:flex items-center space-x-4">
+            <div className="text-right border-r border-slate-700/50 pr-4">
+              <span className="text-[10px] text-slate-400 font-semibold block uppercase">DARPG Civic Grid</span>
+              <span className="text-xs font-extrabold text-[#7A0C38] dark:text-amber-400 font-mono">
+                Jurisdiction
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 font-semibold block uppercase">SLA Standard</span>
+              <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                15 Days
+              </span>
             </div>
           </div>
 
         </div>
       </div>
 
-      {/* 3. SUB-NAVBAR MENU STRIP (Official GovTech Maroon #7A0C38) */}
-      <div className="bg-[#7A0C38] text-white px-4 sm:px-8 shadow-sm">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between py-1.5 gap-2">
+      {/* 3. PRIMARY GOVTECH NAVIGATION TAB BAR (#7A0C38 Royal Maroon Bar) */}
+      <div className="bg-[#7A0C38] text-white px-4 sm:px-8 border-b border-[#961247]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between py-2 gap-2">
           
           {/* Main Navigation Tabs */}
-          <nav className="flex flex-wrap items-center gap-1 sm:gap-2">
+          <nav className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto w-full md:w-auto">
+            {/* CITIZEN PORTAL TAB */}
             <button
               onClick={() => setActiveTab('citizen')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition cursor-pointer ${
                 activeTab === 'citizen'
                   ? 'bg-amber-400 text-slate-950 shadow-md'
                   : 'text-white hover:bg-[#961247]'
@@ -197,12 +205,25 @@ export const Header: React.FC<HeaderProps> = ({
               <span>{t.citizenPortal}</span>
             </button>
 
+            {/* PUBLIC WALL OF GOVERNANCE TAB */}
+            <button
+              onClick={() => setActiveTab('scorecard')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition cursor-pointer ${
+                activeTab === 'scorecard'
+                  ? 'bg-emerald-400 text-slate-950 shadow-md'
+                  : 'text-white hover:bg-[#961247]'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4 text-cyan-300" style={{ width: '16px', height: '16px' }} />
+              <span>Wall of Governance</span>
+            </button>
+
             {/* ONLY RENDER NODAL DASHBOARD & BATCH DEMO IF OFFICER IS LOGGED IN */}
             {isOfficerLoggedIn ? (
               <>
                 <button
                   onClick={() => setActiveTab('admin')}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition relative ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition relative cursor-pointer ${
                     activeTab === 'admin'
                       ? 'bg-amber-400 text-slate-950 shadow-md'
                       : 'text-white hover:bg-[#961247]'
@@ -217,7 +238,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <button
                   onClick={() => setActiveTab('demo')}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-extrabold transition cursor-pointer ${
                     activeTab === 'demo'
                       ? 'bg-blue-600 text-white shadow-md'
                       : 'text-white hover:bg-[#961247]'
