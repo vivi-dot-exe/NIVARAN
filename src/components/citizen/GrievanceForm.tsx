@@ -407,7 +407,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
         <div className="lg:col-span-7 space-y-6">
 
           {/* CPGRAMS REGISTERED USER NOTICE BANNER */}
-          {!currentUser && (
+          {!currentUser ? (
             <div className={`p-8 rounded-2xl border text-center space-y-4 shadow-xl ${
               isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-900'
             }`}>
@@ -437,8 +437,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
                 </p>
               </div>
             </div>
-          )}
-
+          ) : (
           <form onSubmit={handleSubmit} className={`p-6 rounded-2xl border ${
             isDarkMode 
               ? 'bg-slate-900 border-slate-800' 
@@ -673,6 +672,7 @@ export const GrievanceForm: React.FC<GrievanceFormProps> = ({
               </button>
             </div>
           </form>
+          )}
 
           {/* SUCCESS SUBMISSION CARD */}
           <AnimatePresence>
