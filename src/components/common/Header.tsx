@@ -61,7 +61,13 @@ export const Header: React.FC<HeaderProps> = ({
   const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
 
   // Officer access flag
-  const isOfficerLoggedIn = Boolean(currentUser && (currentUser.role.includes('Nodal') || currentUser.role.includes('Officer') || currentUser.role.includes('Admin')));
+  const isOfficerLoggedIn = Boolean(
+    currentUser &&
+    currentUser.role &&
+    (currentUser.role.toUpperCase().includes('NODAL') ||
+     currentUser.role.toUpperCase().includes('OFFICER') ||
+     currentUser.role.toUpperCase().includes('ADMIN'))
+  );
 
   return (
     <header className="w-full shadow-md transition-colors duration-200">

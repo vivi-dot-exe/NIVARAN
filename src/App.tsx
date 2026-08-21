@@ -146,7 +146,13 @@ export function App() {
   const [activeActionGrievance, setActiveActionGrievance] = useState<Grievance | null>(null);
   const [activeActionCivicIssue, setActiveActionCivicIssue] = useState<CivicIssue | null>(null);
 
-  const isOfficerLoggedIn = Boolean(currentUser && (currentUser.role.includes('Nodal') || currentUser.role.includes('Officer') || currentUser.role.includes('Admin')));
+  const isOfficerLoggedIn = Boolean(
+    currentUser &&
+    currentUser.role &&
+    (currentUser.role.toUpperCase().includes('NODAL') ||
+     currentUser.role.toUpperCase().includes('OFFICER') ||
+     currentUser.role.toUpperCase().includes('ADMIN'))
+  );
 
   // PERSIST TO LOCAL STORAGE WHENEVER GRIEVANCES UPDATE
   useEffect(() => {
@@ -541,6 +547,10 @@ export function App() {
 
   const handleSignOut = () => {
     setCurrentUser(null);
+    try {
+      localStorage.removeItem('nivaran_user');
+      localStorage.setItem('nivaran_active_tab', 'citizen');
+    } catch {}
     setActiveTab('citizen');
     setCitizenSubTab('form');
   };
@@ -801,9 +811,24 @@ export function App() {
         }}
         onLoginSuccess={(user) => {
           setCurrentUser(user);
-          if (user.role.includes('Nodal') || user.role.includes('Officer') || user.role.includes('Admin')) {
+          try {
+            localStorage.setItem('nivaran_user', JSON.stringify(user));
+          } catch {}
+          
+          const roleUpper = (user.role || '').toUpperCase();
+          if (roleUpper.includes('NODAL') || roleUpper.includes('OFFICER') || roleUpper.includes('ADMIN')) {
             setActiveTab('admin');
+            try {
+              localStorage.setItem('nivaran_active_tab', 'admin');
+            } catch {}
+          } else {
+            setActiveTab('citizen');
+            try {
+              localStorage.setItem('nivaran_active_tab', 'citizen');
+            } catch {}
           }
+          setIsSignInOpen(false);
+          setIsRegisterPageOpen(false);
         }}
       />
 
