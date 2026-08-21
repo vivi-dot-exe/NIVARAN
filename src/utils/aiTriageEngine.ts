@@ -7,8 +7,8 @@ import type {
   TriageResult,
   RoutingResult
 } from '../types/grievance';
-import { latLngToCell } from 'h3-js';
 import { getAuthorityForDepartment, getNodalOfficerForJurisdiction } from '../mockData/authorities';
+import { latLngToCell } from 'h3-js';
 
 // -------------------------------------------------------------
 // Spatial & H3 Utilities
