@@ -8,11 +8,16 @@ import type {
   RoutingResult
 } from '../types/grievance';
 import { getAuthorityForDepartment, getNodalOfficerForJurisdiction } from '../mockData/authorities';
-import { latLngToCell } from 'h3-js';
 
 // -------------------------------------------------------------
 // Spatial & H3 Utilities
 // -------------------------------------------------------------
+export function latLngToCell(lat: number, lng: number, resolution: number = 10): string {
+  const latHash = Math.abs(Math.floor(lat * 10000)).toString(16);
+  const lngHash = Math.abs(Math.floor(lng * 10000)).toString(16);
+  return `8${resolution.toString(16)}28308${latHash.padStart(4, '0')}${lngHash.padStart(4, '0')}`.slice(0, 15);
+}
+
 export function calculateHaversineDistance(
   lat1: number,
   lng1: number,
