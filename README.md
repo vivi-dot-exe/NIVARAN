@@ -21,7 +21,7 @@ NIVARAN is an artificial intelligence-driven civic governance portal built for t
 - Topic Clustering: BERTopic with HDBSCAN centroids
 - Data Ingestion: Pandas, OpenPyXL, CSV/XLSX Parser
 
----
+
 
 ## Core System Architecture & Workflow
 
@@ -46,7 +46,7 @@ The platform operates across three interconnected modules:
       └── 5. Nodal Action Drawer & Multi-Tier Escalation Trail
 ```
 
----
+
 
 ## Detailed System Modules & User Workflows
 
@@ -79,7 +79,7 @@ The platform operates across three interconnected modules:
      - Stage 3: Nodal Officer Dispatch
      - Stage 4: Site Inspection & Resolution
 
----
+
 
 ### 2. Nodal Officer Dashboard & Role-Based Access Control (RBAC)
 
@@ -107,7 +107,7 @@ The platform operates across three interconnected modules:
    - Multi-field search, department filters, and one-click CSV report export.
    - Selecting any ticket opens the Action Drawer console to update status (Pending, In Progress, Resolved, Escalated), assign nodal officers, and record resolution notes.
 
----
+
 
 ### 3. Batch Ingestion & Emergency Surge Simulator
 
